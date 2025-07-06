@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { generateContextualEvidence } from '@/lib/evidenceSystem';
+import { Evidence } from '@/types/game'; 
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Build conversation history for context
     const conversationHistory = gameState.evidence?.length > 0 
-      ? `Evidence discovered so far: ${gameState.evidence.map((e: any) => e.description).join(', ')}`
+      ? `Evidence discovered so far: ${gameState.evidence.map((e: { description: string }) => e.description).join(', ')}`
       : 'No evidence has been discovered yet.';
 
     const prompt = `You are ${character.name}, a ${character.role} at a college reunion murder mystery.

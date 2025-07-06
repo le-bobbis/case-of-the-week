@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { Evidence } from '@/types/game'; 
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
     const { solution, gameState } = await request.json();
 
     const evidenceContext = gameState.evidence?.length > 0 
-      ? `Evidence discovered: ${gameState.evidence.map((e: any) => e.description).join(', ')}`
+      ? `Evidence discovered: ${gameState.evidence.map((e: { description: string }) => e.description).join(', ')}`
       : 'Limited evidence was discovered.';
 
     const prompt = `You are the game master for "The Vineyard Reunion" murder mystery.
