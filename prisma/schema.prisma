@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // or "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Case {
+  id          String   @id @default(cuid())
+  title       String   
+  description String   
+  setting     String   
+  victim      String   
+  murderWeapon String  
+  murderTime  String   
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  suspects     Suspect[]
+  solution     Solution?
+  coreEvidence CoreEvidence[]
+  redHerrings  RedHerring[]
+}
+
+model Suspect {
+  id          String  @id @default(cuid())
+  caseId      String
+  name        String  // "Elena Vasquez"
+  emoji       String  // "🎭"
+  title       String  // "Theater Director"
+  bio         String  // Full bio text
+  personality String  // For AI prompting
+  background  String
+  secrets     String
+  alibi       String
+  isKiller    Boolean @default(false)
+  
+  case        Case    @relation(fields: [caseId], references: [id])
+}
+
+model Solution {
+  id              String @id @default(cuid())
+  caseId          String @unique
+  killer          String // "Elena Vasquez"
+  killerMotives   String // "Blackmail about college embezzlement"
+  murderMethod    String // "Wine bottle to the head in cellar"
+  keyEvidence     String // "Fingerprints, torn scarf, blackmail texts"
+  timeline        String // "Left dinner at 10 PM, killed Marcus at 10:45 PM"
+  
+  case            Case   @relation(fields: [caseId], references: [id])
+}
+
+model CoreEvidence {
+  id           String   @id @default(cuid())
+  caseId       String
+  name         String   // "Theater Financial Records"
+  emoji        String   // "💰"
+  description  String   // "Documents showing fund discrepancies"
+  triggerWords String   // JSON array as string: ["money", "financial"]
+  importance   Int      // 1-5, how crucial to solving case
+  
+  case         Case     @relation(fields: [caseId], references: [id])
+}
+
+model RedHerring {
+  id            String @id @default(cuid())
+  caseId        String
+  name          String // "Sarah's Wine Glass"
+  emoji         String // "🍷" 
+  description   String // "Glass with Sarah's lipstick marks"
+  triggerWords  String // JSON array as string: ["sarah", "lipstick"]
+  suspectTarget String // "sarah" - which innocent suspect this points to
+  
+  case          Case   @relation(fields: [caseId], references: [id])
+}
