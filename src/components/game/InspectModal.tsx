@@ -29,35 +29,38 @@ export default function InspectModal({ isOpen, inspectLog, onClose, onInspect }:
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 style={{ fontSize: '2em', fontWeight: 'bold', color: '#d4af37', marginBottom: '20px', textAlign: 'center' }}>
-        🔍 Inspect
+      <h2 style={{ fontSize: '2rem', fontWeight: '600', color: '#ffffff', marginBottom: '24px', textAlign: 'center' }}>
+        🔍 Investigate
       </h2>
 
       {/* Inspect Log - Shows recent messages first */}
       <div style={{ 
-        background: 'rgba(0,0,0,0.3)', 
-        borderRadius: '8px', 
-        padding: '15px', 
-        margin: '20px 0', 
+        background: 'rgba(0, 0, 0, 0.3)', 
+        borderRadius: '12px', 
+        padding: '16px', 
+        margin: '24px 0', 
         maxHeight: '200px', 
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column-reverse'
       }}>
         {inspectLog.length === 0 ? (
-          <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>No inspections yet...</p>
+          <p style={{ color: '#666', textAlign: 'center', padding: '24px' }}>No investigations yet...</p>
         ) : (
           inspectLog.slice().reverse().map((entry, index) => (
             <div
               key={inspectLog.length - 1 - index}
               style={{
-                margin: '10px 0',
-                padding: '8px 12px',
+                margin: '8px 0',
+                padding: '12px 16px',
                 borderRadius: '8px',
-                backgroundColor: entry.type === 'player' ? 'rgba(0, 100, 0, 0.3)' : 'rgba(139, 69, 19, 0.3)',
-                marginLeft: entry.type === 'player' ? '20px' : '0',
-                marginRight: entry.type === 'suspect' ? '20px' : '0',
-                color: 'white'
+                backgroundColor: entry.type === 'player' 
+                  ? 'rgba(78, 205, 196, 0.15)' 
+                  : 'rgba(255, 107, 107, 0.1)',
+                marginLeft: entry.type === 'player' ? '48px' : '0',
+                marginRight: entry.type === 'suspect' ? '48px' : '0',
+                color: '#e0e0e0',
+                fontSize: '0.95rem'
               }}
             >
               {entry.text}
@@ -66,61 +69,59 @@ export default function InspectModal({ isOpen, inspectLog, onClose, onInspect }:
         )}
       </div>
 
-      {/* Inspection Input */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <span style={{ fontWeight: 'bold', color: 'white', whiteSpace: 'nowrap' }}>Inspect...</span>
+      {/* Investigation Input */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <span style={{ fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', fontSize: '0.95rem' }}>Investigate...</span>
         <input
           type="text"
           value={inspection}
           onChange={(e) => setInspection(e.target.value)}
           onKeyPress={handleKeyPress}
           maxLength={50}
-          placeholder="What do you want to inspect? (50 characters max)"
+          placeholder="What do you want to investigate? (50 chars max)"
           style={{
             flex: 1,
-            padding: '10px',
-            border: '2px solid #8b4513',
+            padding: '12px 16px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '8px',
-            background: 'rgba(139, 69, 19, 0.2)',
-            color: 'white',
-            fontSize: '1em'
+            background: 'rgba(255, 255, 255, 0.03)',
+            color: '#e0e0e0',
+            fontSize: '0.95rem',
+            outline: 'none',
+            transition: 'all 0.2s ease'
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'rgba(255, 107, 107, 0.5)';
+            e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            e.target.style.background = 'rgba(255, 255, 255, 0.03)';
           }}
         />
       </div>
 
-      {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-        <button
-          onClick={handleSubmit}
-          disabled={!inspection.trim()}
-          style={{
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '8px',
-            background: 'linear-gradient(45deg, #8b0000, #a52a2a)',
-            color: 'white',
-            cursor: inspection.trim() ? 'pointer' : 'not-allowed',
-            opacity: inspection.trim() ? 1 : 0.5,
-            fontSize: '1em'
-          }}
-        >
-          Inspect
-        </button>
-        <button
-          onClick={onClose}
-          style={{
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '8px',
-            background: 'linear-gradient(45deg, #4682b4, #5f9ea0)',
-            color: 'white',
-            cursor: 'pointer',
-            fontSize: '1em'
-          }}
-        >
-          Return
-        </button>
-      </div>
+      {/* Action Button */}
+      <button
+        onClick={handleSubmit}
+        disabled={!inspection.trim()}
+        style={{
+          width: '100%',
+          padding: '14px',
+          border: 'none',
+          borderRadius: '8px',
+          background: inspection.trim() 
+            ? 'linear-gradient(135deg, #ff6b6b 0%, #f06595 100%)' 
+            : '#333',
+          color: 'white',
+          cursor: inspection.trim() ? 'pointer' : 'not-allowed',
+          fontSize: '1rem',
+          fontWeight: '600',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        Investigate
+      </button>
     </Modal>
   );
 }

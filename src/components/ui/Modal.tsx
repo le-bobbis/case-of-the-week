@@ -19,8 +19,14 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'rgba(0,0,0,0.8)',
-        zIndex: 2000
+        background: 'rgba(0, 0, 0, 0.9) !important',
+        zIndex: 2000,
+        backdropFilter: 'blur(8px)'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div 
@@ -30,16 +36,50 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'linear-gradient(135deg, #2c1810 0%, #1a0f08 100%)',
-          border: '2px solid #d4af37',
-          borderRadius: '15px',
-          padding: '30px',
+          background: '#1a1a1a !important',
+          border: '1px solid rgba(255, 255, 255, 0.1) !important',
+          borderRadius: '16px',
+          padding: '32px',
           maxWidth: '600px',
           width: '90%',
           maxHeight: '80vh',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
         }}
       >
+        <button
+          className="modal-close"
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            fontSize: '1.5rem',
+            cursor: 'pointer',
+            padding: '0',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '6px',
+            transition: 'all 0.2s ease',
+            zIndex: 2001
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'none';
+            e.currentTarget.style.color = '#fff';
+          }}
+        >
+          ×
+        </button>
         {children}
       </div>
     </div>

@@ -9,9 +9,9 @@
 }
 
 body {
-  font-family: 'Georgia', serif;
-  background: linear-gradient(135deg, #2c1810 0%, #1a0f08 100%);
-  color: #f4f1e8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0a0a0a;
+  color: #e0e0e0;
   min-height: 100vh;
 }
 
@@ -24,64 +24,78 @@ body {
 /* Landing Page */
 .landing-page {
   text-align: center;
-  padding: 40px 20px;
+  padding: 60px 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .game-title {
-  font-size: 3em;
-  color: #d4af37;
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 4rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 40px;
 }
 
 .case-file {
-  background: rgba(139, 69, 19, 0.3);
-  border: 2px solid #8b4513;
-  border-radius: 10px;
-  padding: 30px;
-  margin: 30px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 40px;
+  margin: 40px auto;
+  max-width: 800px;
   backdrop-filter: blur(10px);
 }
 
 .case-title {
-  font-size: 2em;
-  color: #d4af37;
-  margin-bottom: 20px;
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 24px;
 }
 
 .case-description {
-  font-size: 1.2em;
-  line-height: 1.6;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: #b0b0b0;
   text-align: left;
 }
 
 .begin-btn {
-  background: linear-gradient(45deg, #8b0000, #a52a2a);
+  background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
   color: white;
-  padding: 15px 40px;
-  font-size: 1.3em;
+  padding: 18px 48px;
+  font-size: 1.125rem;
+  font-weight: 600;
   border: none;
-  border-radius: 25px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 30px;
-  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+  margin-top: 40px;
+  letter-spacing: 0.5px;
 }
 
 .begin-btn:hover {
-  background: linear-gradient(45deg, #a52a2a, #dc143c);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
 }
 
 /* Game Interface */
 .case-file-game {
-  background: rgba(139, 69, 19, 0.2);
-  border: 1px solid #8b4513;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
   transition: all 0.3s ease;
+}
+
+.case-file-game.collapsed {
+  padding: 16px 24px;
 }
 
 .case-file-game.collapsed .case-description {
@@ -91,155 +105,251 @@ body {
 .collapse-btn {
   background: none;
   border: none;
-  color: #d4af37;
+  color: #666;
   cursor: pointer;
   float: right;
-  font-size: 1.2em;
+  font-size: 1.2rem;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.collapse-btn:hover {
+  color: #999;
 }
 
 .actions-banner {
-  background: linear-gradient(45deg, #8b0000, #a52a2a);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border: 1px solid rgba(255, 107, 107, 0.3);
   color: white;
-  padding: 20px;
-  margin: 20px 0;
-  border-radius: 15px;
+  padding: 24px;
+  margin: 32px 0;
+  border-radius: 12px;
   text-align: center;
-  font-weight: bold;
-  font-size: 1.5em;
-  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.5);
-  border: 2px solid #d4af37;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
 }
 
+.actions-banner span {
+  color: #ff6b6b;
+}
+
+/* Investigation Section */
+.investigate-section {
+  margin: 40px 0;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.investigate-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.investigate-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.investigate-subtitle {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.investigate-button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.investigate-main-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px 48px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.investigate-main-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 107, 107, 0.5);
+  transform: translateY(-2px);
+}
+
+.investigate-icon {
+  font-size: 2rem;
+  display: inline-block;
+}
+
+.investigate-label {
+  color: #e0e0e0;
+  font-weight: 500;
+  font-size: 1.125rem;
+}
+
+/* Suspects Section */
 .suspects-section {
-  margin: 30px 0;
+  margin: 40px 0;
 }
 
 .section-title {
-  font-size: 1.8em;
-  color: #d4af37;
-  margin-bottom: 20px;
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 24px;
   text-align: center;
 }
 
 .suspects-grid {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .suspect-card {
-  background: rgba(139, 69, 19, 0.3);
-  border: 2px solid #8b4513;
-  border-radius: 15px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 120px;
 }
 
 .suspect-card:hover {
-  background: rgba(139, 69, 19, 0.5);
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 107, 107, 0.5);
+  transform: translateY(-4px);
 }
 
 .suspect-emoji {
-  font-size: 3em;
-  margin-bottom: 10px;
+  font-size: 3rem;
+  margin-bottom: 12px;
   display: block;
 }
 
 .suspect-name {
-  font-weight: bold;
-  color: #d4af37;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.875rem;
 }
 
-.inspect-section {
-  text-align: center;
-  margin: 30px 0;
-}
-
-.inspect-btn {
-  background: rgba(0, 100, 0, 0.3);
-  border: 2px solid #228b22;
-  border-radius: 15px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: white;
-  font-size: 1.2em;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.inspect-btn:hover {
-  background: rgba(0, 100, 0, 0.5);
-  transform: translateY(-3px);
-}
-
+/* Evidence Section */
 .evidence-section {
-  margin-top: 40px;
+  margin-top: 48px;
 }
 
 .evidence-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .evidence-slot {
   aspect-ratio: 1;
-  background: rgba(139, 69, 19, 0.2);
-  border: 2px dashed #8b4513;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5em;
+  font-size: 1.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: #333;
 }
 
 .evidence-slot.filled {
-  background: rgba(139, 69, 19, 0.4);
-  border: 2px solid #d4af37;
+  background: rgba(255, 107, 107, 0.1);
+  border: 2px solid rgba(255, 107, 107, 0.3);
+  color: #e0e0e0;
 }
 
 .evidence-slot.filled:hover {
-  background: rgba(139, 69, 19, 0.6);
+  background: rgba(255, 107, 107, 0.15);
   transform: scale(1.1);
 }
 
+/* Solve Banner */
 .solve-banner {
-  background: linear-gradient(45deg, #2e8b57, #3cb371);
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
   color: white;
-  padding: 20px;
-  margin: 40px 0 20px 0;
-  border-radius: 15px;
+  padding: 24px;
+  margin: 48px auto 24px;
+  border-radius: 12px;
   text-align: center;
-  font-weight: bold;
-  font-size: 1.5em;
-  box-shadow: 0 4px 15px rgba(46, 139, 87, 0.5);
-  border: 2px solid #d4af37;
+  font-weight: 600;
+  font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  max-width: 600px;
+  letter-spacing: 0.5px;
 }
 
 .solve-banner:hover {
-  background: linear-gradient(45deg, #3cb371, #66cdaa);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(46, 139, 87, 0.6);
+  box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+}
+
+/* Modal Styles */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 @media (max-width: 768px) {
+  .game-title {
+    font-size: 3rem;
+  }
+  
   .suspects-grid {
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
   }
   
   .evidence-grid {
     grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  
+  .investigate-grid {
+    grid-template-columns: 1fr;
   }
 }
