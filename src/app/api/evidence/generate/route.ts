@@ -36,7 +36,13 @@ export async function POST(request: NextRequest) {
 
     // Build context for existing evidence to prevent duplicates
     const existingEvidenceContext = existingEvidence.length > 0 
-      ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}`
+      ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}
+
+CRITICAL: Do NOT generate evidence for objects of the same TYPE already discovered. Examples:
+- If wine bottle evidence exists, do NOT create more wine bottle evidence
+- If phone evidence exists, do NOT create more phone evidence  
+- If clothing evidence exists, do NOT create more clothing evidence
+Check for OBJECT CATEGORY overlap, not just exact names.`
       : 'No evidence discovered yet.';
 
     // Build conversation context
@@ -65,14 +71,15 @@ YOUR TASK:
 Analyze the character's response. Does it contain any interesting nouns, objects, or concepts that could become a physical piece of evidence? 
 
 EVIDENCE GENERATION RULES:
-1. BE AGGRESSIVE - If ANY physical object is mentioned, strongly consider generating evidence
-2. Objects that should ALWAYS generate evidence: weapons, bottles, phones, keys, clothing items, documents, cameras, etc.
+1. If ANY physical object is mentioned, consider generating evidence
+2. Objects to consider when generating evidence: weapons (real or potential), personal electronics, keys, clothing items, documents, cameras, setting features, etc.
 3. Locations can generate evidence if they contain specific details (scratches on door, stains on floor, etc.)
 4. Maximum ONE piece of evidence per response
 5. Evidence should feel natural and connected to what was just discussed
 6. Can be either a REAL CLUE (points toward the killer) or RED HERRING (misleading)
-7. Must not duplicate existing evidence concepts
+7. Must not duplicate existing evidence CATEGORIES - if any wine bottle evidence exists, do NOT generate more wine bottles
 8. Evidence must be realistic for this murder scene investigation
+9. When in doubt about duplicates, choose NO_EVIDENCE rather than risk creating similar evidence
 
 DESCRIPTION RULES:
 - Describe ONLY what is physically observed
@@ -92,9 +99,9 @@ BAD EXAMPLES:
 - "A phone with threatening messages (clearly evidence of blackmail)"
 
 RESPONSE FORMAT:
-If no evidence should be generated, respond with: NO_EVIDENCE
+If no evidence should be generated, respond with EXACTLY: NO_EVIDENCE
 
-If evidence should be generated, respond with valid JSON:
+If evidence should be generated, respond with ONLY valid JSON (no extra text):
 {
   "shouldGenerate": true,
   "evidence": {
@@ -105,7 +112,7 @@ If evidence should be generated, respond with valid JSON:
   }
 }
 
-Generate evidence based on the character response:`;
+IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extra text.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -133,14 +140,26 @@ Generate evidence based on the character response:`;
       });
     }
 
+    // Extract JSON from response (in case AI adds extra text)
+    let jsonString = response.trim();
+    
+    // Try to find JSON object boundaries
+    const jsonStart = jsonString.indexOf('{');
+    const jsonEnd = jsonString.lastIndexOf('}') + 1;
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      jsonString = jsonString.substring(jsonStart, jsonEnd);
+    }
+    
     // Try to parse JSON response
     try {
-      const parsedResponse = JSON.parse(response);
+      const parsedResponse = JSON.parse(jsonString);
       
       if (parsedResponse.shouldGenerate && parsedResponse.evidence) {
         // Validate evidence structure
         const evidence = parsedResponse.evidence;
         if (evidence.id && evidence.name && evidence.emoji && evidence.description) {
+          console.log('✅ Evidence successfully generated:', evidence.name);
           return NextResponse.json({
             evidenceGenerated: true,
             evidence: evidence
@@ -149,13 +168,15 @@ Generate evidence based on the character response:`;
       }
       
       // Invalid structure
+      console.log('❌ Invalid evidence structure');
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
       });
       
     } catch (parseError) {
-      console.error('Failed to parse AI evidence response:', parseError);
+      console.error('❌ Failed to parse AI evidence response:', parseError);
+      console.log('Raw response that failed to parse:', response);
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
