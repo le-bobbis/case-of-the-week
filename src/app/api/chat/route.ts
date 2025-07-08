@@ -1,53 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-// Character personalities and backgrounds
-const characterProfiles = {
-  elena: {
-    name: "Elena Vasquez",
-    role: "Theater Director",
-    personality: "Confident and charismatic but has been unusually quiet tonight. Speaks with dramatic flair.",
-    background: "Close friends with Marcus in college, both involved in dramatic arts. Now a successful off-Broadway director recently chosen for a major Broadway production.",
-    secrets: "Was treasurer of the college theater program and embezzled funds. Marcus discovered this and has been blackmailing her.",
-    alibi: "Claims she was working on production notes most of the evening."
-  },
-  david: {
-    name: "David Chen", 
-    role: "Software Engineer",
-    personality: "Quiet, analytical type who keeps detailed mental notes. Genuinely shocked by the death.",
-    background: "Marcus's college roommate and closest friend. Senior engineer at a major tech company.",
-    secrets: "None - he's genuinely innocent and devastated.",
-    alibi: "Was debugging code on his laptop during the party, saw Elena near the wine cellar at 10:45 PM."
-  },
-  sarah: {
-    name: "Sarah Mitchell",
-    role: "Corporate Lawyer", 
-    personality: "Sharp tongue, competitive nature. Has been drinking heavily tonight.",
-    background: "High-powered attorney. Had a complicated romantic history with Marcus in college.",
-    secrets: "Still harbors feelings for Marcus but he rejected her advances earlier tonight.",
-    alibi: "Was talking with James in the garden from 10:30-11:30 PM."
-  },
-  james: {
-    name: "Professor James Wright",
-    role: "English Literature Professor",
-    personality: "Nervous, keeps checking his watch. Feels responsible as the organizer.",
-    background: "Academic who never left the college town. Organized this reunion. Was Marcus's academic rival.",
-    secrets: "Jealous of Marcus's financial success but not murderous.",
-    alibi: "Was giving tours of the wine facilities and can verify Sarah's whereabouts."
-  },
-  rebecca: {
-    name: "Dr. Rebecca Torres",
-    role: "Emergency Room Physician",
-    personality: "Professional, clinical. The group's unofficial therapist who helps others with problems.",
-    background: "Trauma surgeon who works intense hours. Discovered the body and called 911.",
-    secrets: "Has been struggling with debt from her medical practice.",
-    alibi: "Was helping other guests with minor issues, discovered the body at 11:30 PM."
-  }
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,35 +15,60 @@ export async function POST(request: NextRequest) {
     console.log('- Suspect:', suspectId);
     console.log('- Question:', question);
     
-    const character = characterProfiles[suspectId as keyof typeof characterProfiles];
-    if (!character) {
+    // Get the active case with suspects
+    const activeCase = await prisma.case.findFirst({
+      where: { isActive: true },
+      include: {
+        suspects: true
+      }
+    });
+
+    if (!activeCase) {
+      return NextResponse.json({ error: 'No active case found' }, { status: 404 });
+    }
+
+    // Find the specific suspect by their name (suspectId is lowercase name)
+    const suspect = activeCase.suspects.find(s => 
+      s.name.toLowerCase().includes(suspectId.toLowerCase())
+    );
+
+    if (!suspect) {
       return NextResponse.json({ error: 'Invalid suspect' }, { status: 400 });
     }
 
     // Build conversation history for context
     const conversationHistory = gameState.evidence?.length > 0 
-      ? `Evidence discovered so far: ${gameState.evidence.map((e: { description: string }) => e.description).join(', ')}`
+      ? `Evidence discovered so far:
+${gameState.evidence.map((e: { emoji: string, name: string, description: string }) => 
+  `- ${e.emoji} ${e.name}: ${e.description}`
+).join('\n')}`
       : 'No evidence has been discovered yet.';
 
-    const prompt = `You are ${character.name}, a ${character.role} at a college reunion murder mystery.
+    const prompt = `You are ${suspect.name}, a ${suspect.title} at a college reunion murder mystery.
 
 CHARACTER PROFILE:
-- Personality: ${character.personality}
-- Background: ${character.background}
-- Secret: ${character.secrets}
-- Your alibi: ${character.alibi}
+- Personality: ${suspect.personality}
+- Background: ${suspect.background}
+- Secret: ${suspect.secrets}
+- Your alibi: ${suspect.alibi}
 
 MURDER CONTEXT:
-Marcus Thornfield was found dead in the wine cellar at 11:30 PM, struck with a vintage wine bottle. This happened during a 20-year college reunion at Rosewood Vineyard estate.
+${activeCase.victim} was found dead in ${activeCase.setting} at ${activeCase.murderTime}, struck with ${activeCase.murderWeapon}. This happened during a 20-year college reunion at Rosewood Vineyard estate.
 
 CURRENT SITUATION:
 ${conversationHistory}
 Actions remaining: ${gameState.actionsRemaining}/20
 
+IMPORTANT: The evidence above shows what has been discovered. You should:
+- Acknowledge evidence that directly relates to you
+- React appropriately if evidence implicates you
+- Stay consistent with what evidence reveals
+- Don't mention evidence that hasn't been discovered yet
+
 The player just asked you: "${question}"
 
 INSTRUCTIONS:
-- Stay completely in character as ${character.name}
+- Stay completely in character as ${suspect.name}
 - Respond with ONLY direct speech - no actions, no *descriptions*, no narration
 - Don't immediately reveal your secrets unless directly confronted with evidence
 - Be helpful but also protective of yourself
@@ -109,10 +92,10 @@ Example of what TO do:
 - "I was in the garden with James from 10:30 to 11:30."
 - "That wine bottle? I haven't touched it."
 
-Respond as ${character.name} with 1-2 complete sentences only:`;
+Respond as ${suspect.name} with 1-2 complete sentences only:`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 100,
       messages: [
         {
@@ -142,8 +125,11 @@ Respond as ${character.name} with 1-2 complete sentences only:`;
         body: JSON.stringify({
           playerQuestion: question,
           characterResponse: response,
+          characterName: suspect.name,
           existingEvidence: gameState.evidence || [],
-          conversationHistory: conversationHistoryForEvidence
+          conversationHistory: conversationHistoryForEvidence,
+          actionsRemaining: gameState.actionsRemaining,
+          evidenceCount: gameState.evidence?.length || 0
         })
       });
 

@@ -41,7 +41,7 @@ Current game context: ${gameState.actionsRemaining} actions remaining, ${gameSta
 Describe what the player observes when inspecting "${inspection}":`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 100,
       messages: [
         {

@@ -24,10 +24,22 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
     }
   };
 
-  const handleEvidenceClick = (evidenceEmoji: string) => {
-    const newValue = question + (question ? ' ' : '') + evidenceEmoji;
+  const handleEvidenceClick = (evidenceItem: Evidence) => {
+    console.log('Evidence clicked:', evidenceItem);
+    
+    // Safety check
+    if (!evidenceItem || !evidenceItem.description) {
+      console.error('Invalid evidence item:', evidenceItem);
+      return;
+    }
+    
+    const newValue = question + (question ? ' ' : '') + evidenceItem.description;
+    console.log('New value would be:', newValue);
+    
     if (newValue.length <= 100) {
       setQuestion(newValue);
+    } else {
+      console.log('Text too long, not adding');
     }
   };
 
@@ -118,7 +130,7 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
                   transition: 'all 0.2s ease',
                   color: '#fff'
                 }}
-                onClick={() => handleEvidenceClick(item.emoji)}
+                onClick={() => handleEvidenceClick(item)}
                 title={item.description}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)';
