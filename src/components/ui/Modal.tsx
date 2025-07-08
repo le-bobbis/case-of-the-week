@@ -19,9 +19,9 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'rgba(0, 0, 0, 0.9) !important',
+        background: 'rgba(0, 0, 0, 0.95) !important',
         zIndex: 2000,
-        backdropFilter: 'blur(8px)'
+        backdropFilter: 'blur(32px)'
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {

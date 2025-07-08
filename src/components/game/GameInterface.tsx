@@ -179,14 +179,28 @@ export default function GameInterface() {
         </div>
       </div>
 
+
       {/* Actions Banner */}
       <div className="actions-banner">
         Actions Remaining: {gameState.actionsRemaining}/20
       </div>
 
+      {/* Investigate Section - NOW ABOVE SUSPECTS */}
+      <div className="investigate-section">
+        <div className="investigate-header">
+          <h2 className="investigate-title">Search for Clues</h2>
+        </div>
+        <div className="investigate-button-container">
+          <button className="investigate-main-btn" onClick={() => setShowInspectModal(true)}>
+            <span className="investigate-icon">🔍</span>
+            <span className="investigate-label">Investigate</span>
+          </button>
+        </div>
+      </div>
+
       {/* Suspects Section */}
       <div className="suspects-section">
-        <h2 className="section-title">Suspects</h2>
+        <h2 className="section-title">Question Suspects</h2>
         <div className="suspects-grid">
           {Object.values(suspectsData).map((suspect) => (
             <SuspectCard
@@ -195,14 +209,6 @@ export default function GameInterface() {
               onClick={() => openSuspectModal(suspect.id)}
             />
           ))}
-        </div>
-      </div>
-
-      {/* Inspect Section */}
-      <div className="inspect-section">
-        <div className="inspect-btn" onClick={() => setShowInspectModal(true)}>
-          <span style={{ fontSize: '2em' }}>🔍</span><br />
-          Inspect
         </div>
       </div>
 

@@ -137,10 +137,9 @@ body {
 /* Investigation Section */
 .investigate-section {
   margin: 40px 0;
-  padding: 32px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  padding: 0;
+  background: none;
+  border: none;
 }
 
 .investigate-header {
