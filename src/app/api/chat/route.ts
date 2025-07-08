@@ -89,20 +89,30 @@ INSTRUCTIONS:
 - Respond with ONLY direct speech - no actions, no *descriptions*, no narration
 - Don't immediately reveal your secrets unless directly confronted with evidence
 - Be helpful but also protective of yourself
-- Keep responses to EXACTLY 1-3 sentences maximum
+- Keep responses to EXACTLY 1-2 sentences maximum
+- CRITICAL: Each sentence must be complete with proper ending punctuation
+- CRITICAL: Never end mid-sentence or with incomplete thoughts
 - Show emotions through your words, not actions
 - If asked about evidence, respond based on what your character would realistically know
 - Be concise and direct
-- NO asterisks, NO action descriptions, NO stage directions - just speak as the character
+- NO asterisks (*), NO action descriptions, NO stage directions - just speak as the character
+- NEVER use phrases like *sighs*, *looks away*, *nervously* etc.
 - MENTION SPECIFIC OBJECTS when reasonable (wine, bottles, phones, keys, etc.)
 
-Example of what NOT to do: "*nervously fidgets* I don't know anything about that."
-Example of what TO do: "I don't know anything about that."
+Example of what NOT to do: 
+- "*nervously fidgets* I don't know anything about that."
+- "Well, I was just trying to... you know, I mean I didn't really see"
+- "That's interesting, but I need to go check on something in the"
 
-Respond as ${character.name} with direct speech only:`;
+Example of what TO do: 
+- "I don't know anything about that."
+- "I was in the garden with James from 10:30 to 11:30."
+- "That wine bottle? I haven't touched it."
+
+Respond as ${character.name} with 1-2 complete sentences only:`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20240307',
       max_tokens: 100,
       messages: [
         {

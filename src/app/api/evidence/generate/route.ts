@@ -14,15 +14,19 @@ export async function POST(request: NextRequest) {
     const { 
       playerQuestion, 
       characterResponse, 
+      characterName,
       existingEvidence, 
-      conversationHistory 
+      conversationHistory,
+      actionsRemaining,
+      evidenceCount
     } = await request.json();
 
     // Fetch the active case and its solution from database
     const activeCase = await prisma.case.findFirst({
       where: { isActive: true },
       include: {
-        solution: true
+        solution: true,
+        suspects: true  // Add this to get suspects
       }
     });
 
@@ -34,15 +38,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build context for existing evidence to prevent duplicates
-    const existingEvidenceContext = existingEvidence.length > 0 
-      ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}
+    // Build suspect names list from database
+    const suspectNames = activeCase.suspects.map(s => s.name).join(', ');
 
-CRITICAL: Do NOT generate evidence for objects of the same TYPE already discovered. Examples:
-- If wine bottle evidence exists, do NOT create more wine bottle evidence
-- If phone evidence exists, do NOT create more phone evidence  
-- If clothing evidence exists, do NOT create more clothing evidence
-Check for OBJECT CATEGORY overlap, not just exact names.`
+    // Build context for existing evidence to prevent duplicates
+    const existingCategories = new Set();
+    const existingEvidenceContext = existingEvidence.length > 0 
+      ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => {
+          // Track categories
+          if (e.emoji === '📱') existingCategories.add('PHONE');
+          if (e.emoji === '🍷' || e.emoji === '🍾') existingCategories.add('WINE');
+          if (e.emoji === '👔' || e.emoji === '🧵' || e.emoji === '👗') existingCategories.add('FABRIC');
+          if (e.emoji === '📋' || e.emoji === '📄' || e.emoji === '📝') existingCategories.add('DOCUMENT');
+          if (e.emoji === '🔑') existingCategories.add('KEY');
+          if (e.emoji === '👟' || e.emoji === '👠') existingCategories.add('FOOTWEAR');
+          if (e.emoji === '💻') existingCategories.add('COMPUTER');
+          
+          return `${e.emoji} ${e.name} - ${e.description}`;
+        }).join(', ')}
+
+CRITICAL: These evidence CATEGORIES already exist and MUST NOT be duplicated: ${Array.from(existingCategories).join(', ')}
+Do NOT create ANY new evidence in these categories, even with different names or descriptions.`
       : 'No evidence discovered yet.';
 
     // Build conversation context
@@ -61,14 +77,54 @@ CASE CONTEXT:
 
 CURRENT SITUATION:
 Player asked: "${playerQuestion}"
-Character responded: "${characterResponse}"
+Character (${characterName}) responded: "${characterResponse}"
 
 GAME STATE:
 ${existingEvidenceContext}
 ${conversationContext}
+Actions remaining: ${actionsRemaining}/20
+Evidence already found: ${evidenceCount}/20
+
+GENERATION FREQUENCY:
+- If evidence count is 0-3: Be more generous (help player get started)
+- If evidence count is 4-10: Be selective (only strong mentions)
+- If evidence count is 11-15: Be very selective (only critical evidence)
+- If evidence count is 16+: Almost never generate (player has enough)
 
 YOUR TASK:
 Analyze the character's response. Does it contain any interesting nouns, objects, or concepts that could become a physical piece of evidence? 
+
+EVIDENCE GENERATION THRESHOLD:
+- Only generate evidence if there's a STRONG, DIRECT mention of a physical object
+- Vague descriptions, emotions, or general scene-setting should NOT generate evidence
+- Consider evidence generation probability:
+  * Direct object mention with details: 70% chance
+  * Vague object reference: 20% chance  
+  * Scene description only: 5% chance
+  * Emotional/character descriptions: 0% chance
+
+Examples that SHOULD generate evidence:
+- "I saw Elena drop her scarf near the door"
+- "There was a phone on the table with missed calls"
+- "Marcus's wallet fell out during the struggle"
+
+Examples that should NOT generate evidence:
+- "The room smelled musty" (too vague)
+- "Elena looked nervous" (not physical)
+- "It was a chaotic scene" (general description)
+- "Wine was everywhere" (too general unless specific bottle mentioned) 
+
+CRITICAL: Do NOT generate evidence for objects of the same TYPE already discovered. Check these categories:
+- FABRIC/CLOTHING: torn fabric, scarves, jackets, buttons, threads, fibers
+- WINE/BOTTLES: wine bottles, broken glass, corks, wine stains
+- ELECTRONICS: phones, laptops, tablets, cameras
+- KEYS/LOCKS: any keys, keychains, lock picks
+- DOCUMENTS: papers, notes, letters, records
+- PERSONAL ITEMS: watches, jewelry, wallets, glasses
+- FOOTWEAR: shoes, footprints, shoe marks
+- BLOOD/BODILY: blood, hair, fingerprints
+
+If ANY evidence in a category exists, do NOT create more in that category.
 
 EVIDENCE GENERATION RULES:
 1. If ANY physical object is mentioned, consider generating evidence
@@ -77,9 +133,14 @@ EVIDENCE GENERATION RULES:
 4. Maximum ONE piece of evidence per response
 5. Evidence should feel natural and connected to what was just discussed
 6. Can be either a REAL CLUE (points toward the killer) or RED HERRING (misleading)
-7. Must not duplicate existing evidence CATEGORIES - if any wine bottle evidence exists, do NOT generate more wine bottles
+7. Must not duplicate existing evidence CATEGORIES - check the category list above
 8. Evidence must be realistic for this murder scene investigation
 9. When in doubt about duplicates, choose NO_EVIDENCE rather than risk creating similar evidence
+10. ONLY use character names from this case: ${suspectNames}, ${activeCase.victim} (victim)
+11. Do NOT invent new characters - stick to the established suspects from the database
+12. INSPECT commands should generate evidence RARELY - only if something very specific and important is discovered
+13. Evidence should be SIGNIFICANT - not trivial details like smells or general descriptions
+14. Prefer NO_EVIDENCE over weak or marginal evidence
 
 DESCRIPTION RULES:
 - Describe ONLY what is physically observed
@@ -115,7 +176,7 @@ If evidence should be generated, respond with ONLY valid JSON (no extra text):
 IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extra text.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 200,
       messages: [
         {
@@ -159,6 +220,31 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
         // Validate evidence structure
         const evidence = parsedResponse.evidence;
         if (evidence.id && evidence.name && evidence.emoji && evidence.description) {
+          
+          // Additional validation: check for duplicate categories
+          const phoneEmojis = ['📱', '📞', '☎️'];
+          const documentEmojis = ['📋', '📄', '📝', '📃', '📑'];
+          const fabricEmojis = ['👔', '🧵', '👗', '👚', '🧥'];
+          
+          // Check if this category already exists
+          for (const existing of existingEvidence) {
+            // Phone category check
+            if (phoneEmojis.includes(evidence.emoji) && phoneEmojis.includes(existing.emoji)) {
+              console.log('❌ Duplicate phone evidence blocked');
+              return NextResponse.json({ evidenceGenerated: false, evidence: null });
+            }
+            // Document category check
+            if (documentEmojis.includes(evidence.emoji) && documentEmojis.includes(existing.emoji)) {
+              console.log('❌ Duplicate document evidence blocked');
+              return NextResponse.json({ evidenceGenerated: false, evidence: null });
+            }
+            // Fabric category check
+            if (fabricEmojis.includes(evidence.emoji) && fabricEmojis.includes(existing.emoji)) {
+              console.log('❌ Duplicate fabric evidence blocked');
+              return NextResponse.json({ evidenceGenerated: false, evidence: null });
+            }
+          }
+          
           console.log('✅ Evidence successfully generated:', evidence.name);
           return NextResponse.json({
             evidenceGenerated: true,
