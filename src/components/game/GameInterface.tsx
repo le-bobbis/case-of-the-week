@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { suspects } from '@/data/suspects';
+import { useState, useEffect } from 'react';
 import { GameState, Suspect, ChatMessage } from '@/types/game';
 import SuspectCard from './SuspectCard';
 import SuspectModal from './SuspectModal';
 import InspectModal from './InspectModal';
 import SolutionModal from './SolutionModal';
 import EvidenceGrid from './EvidenceGrid';
+
+interface CaseInfo {
+  id: string;
+  title: string;
+  description: string;
+  setting: string;
+  victim: string;
+  murderWeapon: string;
+  murderTime: string;
+}
 
 export default function GameInterface() {
   const [gameState, setGameState] = useState<GameState>({
@@ -17,11 +26,44 @@ export default function GameInterface() {
     inspectLog: []
   });
 
-  const [suspectsData, setSuspectsData] = useState(suspects);
+  const [currentCase, setCurrentCase] = useState<CaseInfo | null>(null);
+  const [suspectsData, setSuspectsData] = useState<Record<string, Suspect>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCaseCollapsed, setIsCaseCollapsed] = useState(false);
   const [showSuspectModal, setShowSuspectModal] = useState(false);
   const [showInspectModal, setShowInspectModal] = useState(false);
   const [showSolutionModal, setShowSolutionModal] = useState(false);
+
+  // Load case and suspects data on component mount
+  useEffect(() => {
+    const loadGameData = async () => {
+      try {
+        // Load current case
+        const caseResponse = await fetch('/api/case/current');
+        if (!caseResponse.ok) {
+          throw new Error('Failed to load current case');
+        }
+        const caseData = await caseResponse.json();
+        setCurrentCase(caseData);
+
+        // Load suspects
+        const suspectsResponse = await fetch('/api/suspects');
+        if (!suspectsResponse.ok) {
+          throw new Error('Failed to load suspects');
+        }
+        const suspectsData = await suspectsResponse.json();
+        setSuspectsData(suspectsData);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load game data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGameData();
+  }, []);
 
   const currentSuspect = gameState.currentSuspect ? suspectsData[gameState.currentSuspect] : null;
 
@@ -163,9 +205,31 @@ export default function GameInterface() {
     useAction();
   };
 
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="case-file-game">
+          <p style={{ color: '#666', textAlign: 'center' }}>Loading game data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !currentCase) {
+    return (
+      <div className="container">
+        <div className="case-file-game">
+          <p style={{ color: '#ff6b6b', textAlign: 'center' }}>
+            {error || 'Failed to load game data'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
-      {/* Case File */}
+      {/* Case File - Now Dynamic */}
       <div className={`case-file-game ${isCaseCollapsed ? 'collapsed' : ''}`}>
         <button 
           className="collapse-btn"
@@ -173,19 +237,18 @@ export default function GameInterface() {
         >
           {isCaseCollapsed ? '▼' : '▲'}
         </button>
-        <h2 className="case-title">The Vineyard Reunion</h2>
+        <h2 className="case-title">{currentCase.title}</h2>
         <div className="case-description">
-          During a 20-year college reunion at the exclusive Rosewood Vineyard estate, successful venture capitalist Marcus Thornfield (47) was found dead in the wine cellar at 11:30 PM, struck in the head with a vintage wine bottle. The reunion dinner had ended at 10 PM, with guests mingling throughout the estate's main house, gardens, and wine facilities until the body was discovered. Security cameras show all five remaining guests had access to the cellar area during the critical timeframe. The killer is among the reunion attendees, each harboring secrets from their shared college years.
+          {currentCase.description}
         </div>
       </div>
-
 
       {/* Actions Banner */}
       <div className="actions-banner">
         Actions Remaining: {gameState.actionsRemaining}/20
       </div>
 
-      {/* Investigate Section - NOW ABOVE SUSPECTS */}
+      {/* Investigate Section */}
       <div className="investigate-section">
         <div className="investigate-header">
           <h2 className="investigate-title">Search for Clues</h2>
@@ -198,7 +261,7 @@ export default function GameInterface() {
         </div>
       </div>
 
-      {/* Suspects Section */}
+      {/* Suspects Section - Now Dynamic */}
       <div className="suspects-section">
         <h2 className="section-title">Question Suspects</h2>
         <div className="suspects-grid">

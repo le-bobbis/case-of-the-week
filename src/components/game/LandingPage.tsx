@@ -1,16 +1,71 @@
+import { useEffect, useState } from 'react';
+
+interface Case {
+  id: string;
+  title: string;
+  description: string;
+}
+
 interface LandingPageProps {
   onStartGame: () => void;
 }
 
 export default function LandingPage({ onStartGame }: LandingPageProps) {
+  const [currentCase, setCurrentCase] = useState<Case | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentCase = async () => {
+      try {
+        const response = await fetch('/api/case/current');
+        if (!response.ok) {
+          throw new Error('Failed to fetch current case');
+        }
+        const data = await response.json();
+        setCurrentCase(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load case');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurrentCase();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="landing-page">
+        <h1 className="game-title">Case of the Week</h1>
+        <div className="case-file">
+          <p style={{ color: '#666', textAlign: 'center' }}>Loading current case...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !currentCase) {
+    return (
+      <div className="landing-page">
+        <h1 className="game-title">Case of the Week</h1>
+        <div className="case-file">
+          <p style={{ color: '#ff6b6b', textAlign: 'center' }}>
+            {error || 'No active case found'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="landing-page">
       <h1 className="game-title">Case of the Week</h1>
       
       <div className="case-file">
-        <h2 className="case-title">The Vineyard Reunion</h2>
+        <h2 className="case-title">{currentCase.title}</h2>
         <div className="case-description">
-          During a 20-year college reunion at the exclusive Rosewood Vineyard estate, successful venture capitalist Marcus Thornfield (47) was found dead in the wine cellar at 11:30 PM, struck in the head with a vintage wine bottle. The reunion dinner had ended at 10 PM, with guests mingling throughout the estate's main house, gardens, and wine facilities until the body was discovered. Security cameras show all five remaining guests had access to the cellar area during the critical timeframe. The killer is among the reunion attendees, each harboring secrets from their shared college years.
+          {currentCase.description}
         </div>
       </div>
       

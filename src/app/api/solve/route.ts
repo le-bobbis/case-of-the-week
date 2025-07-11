@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { Evidence } from '@/types/game'; 
+import { Evidence } from '@/types/game';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -10,14 +13,33 @@ export async function POST(request: NextRequest) {
   try {
     const { solution, gameState } = await request.json();
 
+    // Get the active case and its solution
+    const activeCase = await prisma.case.findFirst({
+      where: { isActive: true },
+      include: {
+        solution: true
+      }
+    });
+
+    if (!activeCase || !activeCase.solution) {
+      return NextResponse.json({ 
+        evaluation: 'Case information not available.',
+        isCorrect: false,
+        correctAnswer: null
+      }, { status: 500 });
+    }
+
     const evidenceContext = gameState.evidence?.length > 0 
       ? `Evidence discovered: ${gameState.evidence.map((e: { description: string }) => e.description).join(', ')}`
       : 'Limited evidence was discovered.';
 
-    const prompt = `You are the game master for "The Vineyard Reunion" murder mystery.
+    const prompt = `You are the game master for "${activeCase.title}" murder mystery.
 
 CORRECT SOLUTION:
-Elena Vasquez killed Marcus Thornfield. She struck him with a wine bottle in the cellar because Marcus was blackmailing her about embezzling funds from the college theater program 20 years ago. Elena needed to silence Marcus before her Broadway debut.
+Killer: ${activeCase.solution.killer}
+Motive: ${activeCase.solution.killerMotives}
+Method: ${activeCase.solution.murderMethod}
+Key Evidence: ${activeCase.solution.keyEvidence}
 
 PLAYER'S SOLUTION:
 "${solution}"
@@ -27,12 +49,12 @@ GAME CONTEXT:
 - ${evidenceContext}
 
 EVALUATION CRITERIA:
-1. Did they correctly identify Elena as the killer?
-2. Do they understand the blackmail motive?
+1. Did they correctly identify ${activeCase.solution.killer} as the killer?
+2. Do they understand the motive?
 3. How well did they use the evidence?
 
 INSTRUCTIONS:
-- If they got Elena correct: Congratulate them and explain the full solution
+- If they got the killer correct: Congratulate them and explain the full solution
 - If they got it wrong: Give constructive feedback without revealing the answer
 - Reference specific evidence they found in your evaluation
 - Keep response to 3-4 sentences maximum
@@ -53,12 +75,13 @@ Provide your evaluation:`;
 
     const evaluation = message.content[0].type === 'text' ? message.content[0].text : '';
     
-    // Check if solution is correct
-    const isCorrect = solution.toLowerCase().includes('elena');
+    // Check if solution is correct (case-insensitive check for killer name)
+    const killerFirstName = activeCase.solution.killer.split(' ')[0].toLowerCase();
+    const isCorrect = solution.toLowerCase().includes(killerFirstName);
     
     let correctAnswer = null;
     if (isCorrect) {
-      correctAnswer = "Elena Vasquez killed Marcus because he was blackmailing her about stealing money from the college theater fund. She used a wine bottle in the cellar to silence him before her Broadway debut could be ruined.";
+      correctAnswer = `${activeCase.solution.killer} committed the murder. ${activeCase.solution.killerMotives} ${activeCase.solution.murderMethod}`;
     }
 
     return NextResponse.json({

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -20,8 +23,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const prompt = `You are the game master for a murder mystery at Rosewood Vineyard estate. 
-Marcus Thornfield was found dead in the wine cellar, struck with a vintage wine bottle.
+    // Get the active case for context
+    const activeCase = await prisma.case.findFirst({
+      where: { isActive: true },
+      select: {
+        title: true,
+        victim: true,
+        murderWeapon: true,
+        setting: true,
+        description: true
+      }
+    });
+
+    if (!activeCase) {
+      return NextResponse.json({
+        result: "Investigation area not available.",
+        evidenceDiscovered: false,
+        evidence: null
+      });
+    }
+
+    const prompt = `You are the game master for the murder mystery "${activeCase.title}". 
+${activeCase.victim} was found dead in ${activeCase.setting}, struck with ${activeCase.murderWeapon}.
+
+Setting context: ${activeCase.description}
 
 The player wants to inspect: "${inspection}"
 
@@ -29,12 +54,8 @@ Provide a brief description of what they find during their investigation.
 Keep responses to EXACTLY 1-3 sentences maximum.
 Be concise and descriptive.
 Do NOT include any actions, asterisks, or stage directions - just describe what is observed.
-Stay within the murder mystery setting.
+Stay within the murder mystery setting described above.
 MENTION SPECIFIC OBJECTS when possible (bottles, phones, fabric, keys, etc.)
-
-Examples:
-- If inspecting "wine cellar": "The stone walls are damp and several bottles lie shattered on the floor. A pool of dark red wine mingles ominously with something else."
-- If inspecting "door": "The heavy wooden door shows fresh scratches around the lock. A small piece of torn fabric clings to the rough wood."
 
 Current game context: ${gameState.actionsRemaining} actions remaining, ${gameState.evidence?.length || 0} pieces of evidence found.
 
@@ -69,7 +90,9 @@ Describe what the player observes when inspecting "${inspection}":`;
           playerQuestion: `Inspect ${inspection}`,
           characterResponse: result,
           existingEvidence: gameState.evidence || [],
-          conversationHistory: gameState.inspectLog || []
+          conversationHistory: gameState.inspectLog || [],
+          actionsRemaining: gameState.actionsRemaining,
+          evidenceCount: gameState.evidence?.length || 0
         })
       });
 

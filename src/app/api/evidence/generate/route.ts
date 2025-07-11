@@ -107,6 +107,7 @@ Examples that SHOULD generate evidence:
 - "I saw Elena drop her scarf near the door"
 - "There was a phone on the table with missed calls"
 - "Marcus's wallet fell out during the struggle"
+- "A broken wine bottle lies at the foot of the bed"
 
 Examples that should NOT generate evidence:
 - "The room smelled musty" (too vague)

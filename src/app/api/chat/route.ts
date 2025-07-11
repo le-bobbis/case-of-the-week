@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid suspect' }, { status: 400 });
     }
 
-    // Build conversation history for context
+     // Build conversation history for context
     const conversationHistory = gameState.evidence?.length > 0 
       ? `Evidence discovered so far:
 ${gameState.evidence.map((e: { emoji: string, name: string, description: string }) => 
@@ -44,7 +44,7 @@ ${gameState.evidence.map((e: { emoji: string, name: string, description: string 
 ).join('\n')}`
       : 'No evidence has been discovered yet.';
 
-    const prompt = `You are ${suspect.name}, a ${suspect.title} at a college reunion murder mystery.
+    const prompt = `You are ${suspect.name}, a ${suspect.title} in the murder mystery case "${activeCase.title}".
 
 CHARACTER PROFILE:
 - Personality: ${suspect.personality}
@@ -53,7 +53,7 @@ CHARACTER PROFILE:
 - Your alibi: ${suspect.alibi}
 
 MURDER CONTEXT:
-${activeCase.victim} was found dead in ${activeCase.setting} at ${activeCase.murderTime}, struck with ${activeCase.murderWeapon}. This happened during a 20-year college reunion at Rosewood Vineyard estate.
+${activeCase.victim} was found dead in ${activeCase.setting} at ${activeCase.murderTime}, struck with ${activeCase.murderWeapon}. ${activeCase.description}
 
 CURRENT SITUATION:
 ${conversationHistory}
