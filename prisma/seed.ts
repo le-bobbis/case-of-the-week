@@ -112,7 +112,6 @@ async function main() {
       name: 'Wine Bottle Fingerprints',
       emoji: '🍷',
       description: 'Murder weapon with Elena\'s fingerprints clearly visible',
-      triggerWords: 'wine,bottle,fingerprint,weapon,murder',
       importance: 10
     },
     {
@@ -120,7 +119,6 @@ async function main() {
       name: 'Torn Fabric',
       emoji: '👔',
       description: 'Piece of Elena\'s distinctive scarf caught on cellar door',
-      triggerWords: 'door,fabric,torn,scarf,clothing',
       importance: 8
     },
     {
@@ -128,7 +126,6 @@ async function main() {
       name: 'Financial Records',
       emoji: '💰',
       description: 'Documents showing Elena\'s college fund embezzlement',
-      triggerWords: 'money,financial,embezzle,theater,college',
       importance: 9
     },
     {
@@ -136,7 +133,6 @@ async function main() {
       name: 'Threatening Messages',
       emoji: '📱',
       description: 'Marcus\'s phone showing blackmail texts from Elena',
-      triggerWords: 'phone,message,text,threat,blackmail',
       importance: 9
     },
     {
@@ -144,7 +140,6 @@ async function main() {
       name: 'Security Footage',
       emoji: '📷',
       description: 'Camera showing Elena entering cellar at 10:45 PM',
-      triggerWords: 'camera,video,security,footage,time',
       importance: 7
     }
   ];
@@ -163,7 +158,6 @@ async function main() {
       name: 'Lipstick Mark',
       emoji: '💄',
       description: 'Sarah\'s lipstick on Marcus\'s wine glass from earlier conversation',
-      triggerWords: 'lipstick,makeup,glass,sarah,romantic',
       suspectTarget: 'Sarah Mitchell'
     },
     {
@@ -171,7 +165,6 @@ async function main() {
       name: 'Laptop Activity',
       emoji: '💻',
       description: 'David\'s computer showing he was coding during the murder',
-      triggerWords: 'computer,laptop,coding,david,alibi',
       suspectTarget: 'David Chen'
     },
     {
@@ -179,7 +172,6 @@ async function main() {
       name: 'Medical Supplies',
       emoji: '🏥',
       description: 'Rebecca\'s medical bag found near the scene',
-      triggerWords: 'medical,doctor,supplies,rebecca,hospital',
       suspectTarget: 'Dr. Rebecca Torres'
     }
   ];

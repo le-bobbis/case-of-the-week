@@ -75,16 +75,16 @@ Do NOT create ANY new evidence in these categories, even with different names or
       biasInstructions = `
 BIAS TOWARD KILLER EVIDENCE: This interaction has been flagged to favor evidence pointing toward ${biasContext.killerName}. 
 Available killer evidence to potentially discover:
-${biasContext.availableKillerEvidence.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description}`).join('\n')}
+${biasContext.availableKillerEvidence.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description} (triggers: ${e.triggerWords})`).join('\n')}
 
-Increase generation probability for killer evidence by 40% when the context suggests these items.`;
+Increase generation probability for killer evidence by 40% if trigger words match.`;
     } else if (biasContext?.availableRedHerrings?.length > 0) {
       biasInstructions = `
 NEUTRAL/RED HERRING BIAS: This interaction favors neutral or misleading evidence.
 Available red herring evidence:
-${biasContext.availableRedHerrings.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description}`).join('\n')}
+${biasContext.availableRedHerrings.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description} (triggers: ${e.triggerWords})`).join('\n')}
 
-Favor red herring evidence generation if appropriate to the context.`;
+Favor red herring evidence generation if appropriate.`;
     }
 
     const prompt = `You are the evidence manager for "${activeCase.title}" murder mystery game.
@@ -125,7 +125,7 @@ EVIDENCE GENERATION THRESHOLD:
   * Vague object reference: 20% chance  
   * Scene description only: 5% chance
   * Emotional/character descriptions: 0% chance
-  * ${biasContext?.shouldBiasTowardKiller ? 'Killer evidence when context matches: +40% chance' : ''}
+  * ${biasContext?.shouldBiasTowardKiller ? 'Killer evidence with matching triggers: +40% chance' : ''}
 
 Examples that SHOULD generate evidence:
 - "I saw Elena drop her scarf near the door"

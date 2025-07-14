@@ -23,19 +23,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get the active case for context
+    // Get the active case with solution and suspects for context
     const activeCase = await prisma.case.findFirst({
       where: { isActive: true },
-      select: {
-        title: true,
-        victim: true,
-        murderWeapon: true,
-        setting: true,
-        description: true
+      include: {
+        solution: true,
+        suspects: true,
+        coreEvidence: true,
+        redHerrings: true
       }
     });
 
-    if (!activeCase) {
+    if (!activeCase || !activeCase.solution) {
       return NextResponse.json({
         result: "Investigation area not available.",
         evidenceDiscovered: false,
@@ -43,19 +42,54 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Determine if we should bias toward killer (30% chance)
+    const shouldBiasTowardKiller = Math.random() < 0.3;
+    
+    console.log('🎯 Bias Decision:', shouldBiasTowardKiller ? 'KILLER BIAS' : 'NEUTRAL/RED HERRING');
+
+    // Get killer information
+    const killer = activeCase.suspects.find(s => s.name === activeCase.solution!.killer);
+    const killerFirstName = killer ? killer.name.split(' ')[0] : '';
+
+    // Build evidence context for what hasn't been discovered yet
+    const discoveredEvidenceIds = new Set(gameState.evidence?.map((e: any) => e.id) || []);
+    const availableCoreEvidence = activeCase.coreEvidence.filter(e => !discoveredEvidenceIds.has(e.name.toLowerCase().replace(/\s+/g, '_')));
+    const availableRedHerrings = activeCase.redHerrings.filter(e => !discoveredEvidenceIds.has(e.name.toLowerCase().replace(/\s+/g, '_')));
+
+    // Create contextual guidance for the AI
+    const biasGuidance = shouldBiasTowardKiller 
+      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}. Available killer evidence: ${availableCoreEvidence.map(e => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}`
+      : `NEUTRAL/RED HERRING BIAS: Look for ways to connect this inspection to misleading evidence or general scene details. Available red herrings: ${availableRedHerrings.map(e => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}`;
+
     const prompt = `You are the game master for the murder mystery "${activeCase.title}". 
 ${activeCase.victim} was found dead in ${activeCase.setting}, struck with ${activeCase.murderWeapon}.
 
-Setting context: ${activeCase.description}
+CASE CONTEXT:
+${activeCase.description}
+
+SOLUTION CONTEXT (for bias guidance only):
+- Killer: ${activeCase.solution.killer}
+- Method: ${activeCase.solution.murderMethod}
+- Motive: ${activeCase.solution.killerMotives}
+
+BIAS INSTRUCTION:
+${biasGuidance}
+
+SUSPECTS:
+${activeCase.suspects.map(s => `- ${s.name} (${s.title}): ${s.emoji}`).join('\n')}
 
 The player wants to inspect: "${inspection}"
 
-Provide a brief description of what they find during their investigation.
-Keep responses to EXACTLY 1-3 sentences maximum.
-Be concise and descriptive.
-Do NOT include any actions, asterisks, or stage directions - just describe what is observed.
-Stay within the murder mystery setting described above.
-MENTION SPECIFIC OBJECTS when possible (bottles, phones, fabric, keys, etc.)
+INSTRUCTIONS:
+- Provide a brief description of what they find during their investigation
+- Keep responses to EXACTLY 1-3 FULL sentences, no more than 25 words.
+- Be concise and descriptive
+- Do NOT include any actions, asterisks, or stage directions - just describe what is observed
+- Stay within the murder mystery setting described above
+- MENTION SPECIFIC OBJECTS when possible (bottles, phones, fabric, keys, etc.)
+- ${shouldBiasTowardKiller 
+    ? `Subtly favor descriptions that could lead to evidence pointing toward ${killerFirstName}` 
+    : 'Favor neutral observations or subtle misdirection toward other suspects'}
 
 Current game context: ${gameState.actionsRemaining} actions remaining, ${gameState.evidence?.length || 0} pieces of evidence found.
 
@@ -63,7 +97,7 @@ Describe what the player observes when inspecting "${inspection}":`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',
-      max_tokens: 100,
+      max_tokens: 120,
       messages: [
         {
           role: 'user',
@@ -75,8 +109,9 @@ Describe what the player observes when inspecting "${inspection}":`;
     const result = message.content[0].type === 'text' ? message.content[0].text : 'You examine the area carefully but find nothing particularly noteworthy.';
     
     console.log('- Inspection Result:', result);
+    console.log('- Bias Applied:', shouldBiasTowardKiller ? 'Killer-focused' : 'Neutral/Misleading');
 
-    // Call your existing evidence generation API
+    // Call your existing evidence generation API with enhanced context
     let evidenceGenerated = false;
     let evidence = null;
 
@@ -89,10 +124,18 @@ Describe what the player observes when inspecting "${inspection}":`;
         body: JSON.stringify({
           playerQuestion: `Inspect ${inspection}`,
           characterResponse: result,
+          characterName: shouldBiasTowardKiller ? killerFirstName : 'Investigation',
           existingEvidence: gameState.evidence || [],
           conversationHistory: gameState.inspectLog || [],
           actionsRemaining: gameState.actionsRemaining,
-          evidenceCount: gameState.evidence?.length || 0
+          evidenceCount: gameState.evidence?.length || 0,
+          // Add bias context for evidence generation
+          biasContext: {
+            shouldBiasTowardKiller,
+            killerName: activeCase.solution.killer,
+            availableKillerEvidence: availableCoreEvidence,
+            availableRedHerrings: availableRedHerrings
+          }
         })
       });
 
@@ -117,7 +160,14 @@ Describe what the player observes when inspecting "${inspection}":`;
     return NextResponse.json({
       result,
       evidenceDiscovered: evidenceGenerated,
-      evidence: evidence
+      evidence: evidence,
+      // Optional: Include debug info in development
+      ...(process.env.NODE_ENV === 'development' && {
+        debug: {
+          biasApplied: shouldBiasTowardKiller ? 'killer' : 'neutral',
+          targetSuspect: shouldBiasTowardKiller ? killerFirstName : 'none'
+        }
+      })
     });
 
   } catch (error) {

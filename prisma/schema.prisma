@@ -58,7 +58,6 @@ model CoreEvidence {
   name         String
   emoji        String
   description  String
-  triggerWords String
   importance   Int
   
   case         Case     @relation(fields: [caseId], references: [id])
@@ -70,7 +69,6 @@ model RedHerring {
   name          String
   emoji         String
   description   String
-  triggerWords  String
   suspectTarget String
   
   case          Case   @relation(fields: [caseId], references: [id])
