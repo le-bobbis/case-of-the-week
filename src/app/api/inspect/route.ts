@@ -129,7 +129,7 @@ Describe what the player observes when inspecting "${inspection}":`;
           conversationHistory: gameState.inspectLog || [],
           actionsRemaining: gameState.actionsRemaining,
           evidenceCount: gameState.evidence?.length || 0,
-          // Add bias context for evidence generation
+          // Add bias context for evidence generation (without triggerWords)
           biasContext: {
             shouldBiasTowardKiller,
             killerName: activeCase.solution.killer,
