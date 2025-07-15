@@ -33,6 +33,7 @@ model Suspect {
   background  String
   secrets     String
   alibi       String
+  timeline    Json    // Array of timeline events
   isKiller    Boolean @default(false)
   
   case        Case    @relation(fields: [caseId], references: [id])

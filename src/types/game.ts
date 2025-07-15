@@ -1,9 +1,18 @@
+export interface TimelineEvent {
+  time: string;        // e.g., "10:15 PM"
+  action: string;      // What the suspect did
+  location: string;    // Where they were
+  observable: boolean; // Could others have seen this?
+  witnesses?: string[];// Optional: Who could have witnessed this
+}
+
 export interface Suspect {
   id: string;
   name: string;
   emoji: string;
   title: string;
   bio: string;
+  timeline?: TimelineEvent[]; // Add timeline array
   chatLog: ChatMessage[];
 }
 

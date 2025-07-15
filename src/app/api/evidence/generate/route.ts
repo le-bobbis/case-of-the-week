@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Build existing evidence tracking for duplicate prevention
-    const existingTypes = new Set();
     const existingEmojis = new Set();
     const existingNames = new Set();
     
@@ -51,20 +50,6 @@ export async function POST(request: NextRequest) {
       
       // Track by name (case-insensitive)
       existingNames.add(e.name.toLowerCase());
-      
-      // Track object types from emojis
-      if (['📱', '📞', '☎️'].includes(e.emoji)) existingTypes.add('phone');
-      if (['🍷', '🍾', '🥂', '🍼'].includes(e.emoji)) existingTypes.add('wine/bottle');
-      if (['👔', '🧵', '👗', '🧣', '🧥'].includes(e.emoji)) existingTypes.add('clothing/fabric');
-      if (['📋', '📄', '📝', '💰'].includes(e.emoji)) existingTypes.add('document/paper');
-      if (['🔑', '🗝️'].includes(e.emoji)) existingTypes.add('key');
-      if (['👟', '👠', '👞', '👢'].includes(e.emoji)) existingTypes.add('footwear');
-      if (['💻', '🖥️'].includes(e.emoji)) existingTypes.add('computer');
-      if (['🩸', '🔴', '💧', '🩹'].includes(e.emoji)) existingTypes.add('blood');
-      if (['📷', '📹'].includes(e.emoji)) existingTypes.add('camera');
-      if (['⏰', '⌚'].includes(e.emoji)) existingTypes.add('time/watch');
-      if (['👆', '🖐️', '✋', '🤚'].includes(e.emoji)) existingTypes.add('fingerprints');
-      if (['🌿', '🏡', '🌳', '🌷'].includes(e.emoji)) existingTypes.add('location/garden');
       
       return `${e.emoji} ${e.name}`;
     }).join(', ');
@@ -81,16 +66,16 @@ RESPONSE TO ANALYZE: "${characterResponse}"
 SOURCE: ${characterName === 'Investigation' ? 'INSPECT function' : `${characterName} (suspect)`}
 
 EXISTING EVIDENCE: ${existingEvidenceList || 'None'}
-FORBIDDEN TYPES: ${Array.from(existingTypes).join(', ') || 'None'}
 
 STRICT RULES:
 1. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
 2. Evidence description must be ONE SENTENCE, maximum 10 words
 3. Description must be purely factual - no interpretation or speculation
-4. Do NOT create evidence of any type that already exists (see FORBIDDEN TYPES)
+4. Each piece of evidence must be meaningfully different
 5. Do NOT infer or imagine objects that weren't directly mentioned
 6. ONLY use character names from VALID CHARACTERS list - no new people
-7. Inspect responses CAN generate evidence just like suspect responses
+7. Choose an emoji that best represents the object (be creative!)
+8. Inspect responses CAN generate evidence just like suspect responses
 
 VALID EXAMPLES:
 - Suspect: "I dropped my phone near the door" → CREATE phone evidence
@@ -109,7 +94,7 @@ CRITICAL:
 - If multiple objects are mentioned, pick the FIRST valid one
 - Response must be COMPLETE JSON - no truncation
 
-Analyze the response. If it contains an explicit physical object not in forbidden types, respond with ONLY valid JSON:
+Analyze the response. If it contains an explicit physical object, respond with ONLY valid JSON:
 {
   "shouldGenerate": true,
   "evidence": {
@@ -163,28 +148,40 @@ If no valid evidence should be generated, respond with EXACTLY: NO_EVIDENCE`;
         
         // Validate evidence structure
         if (evidence.id && evidence.name && evidence.emoji && evidence.description) {
-          // Triple-check duplicates
-          if (existingEmojis.has(evidence.emoji)) {
-            console.log('❌ Duplicate emoji blocked:', evidence.emoji);
+          // Validate uniqueness using AI
+          try {
+            const validationResponse = await fetch('http://localhost:3000/api/evidence/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                proposedEvidence: evidence,
+                existingEvidence: existingEvidence
+              })
+            });
+
+            const validation = await validationResponse.json();
+            
+            if (!validation.isUnique) {
+              console.log('❌ Evidence not unique:', validation.reason);
+              return NextResponse.json({ evidenceGenerated: false, evidence: null });
+            }
+
+            // If emoji needs to be changed
+            if (validation.suggestedEmoji) {
+              evidence.emoji = validation.suggestedEmoji;
+              console.log('🔄 Emoji updated to:', validation.suggestedEmoji);
+            }
+
+            console.log('✅ Evidence validated as unique:', evidence.name);
+            return NextResponse.json({
+              evidenceGenerated: true,
+              evidence: evidence
+            });
+
+          } catch (validationError) {
+            console.error('❌ Validation failed:', validationError);
             return NextResponse.json({ evidenceGenerated: false, evidence: null });
           }
-          
-          if (existingNames.has(evidence.name.toLowerCase())) {
-            console.log('❌ Duplicate name blocked:', evidence.name);
-            return NextResponse.json({ evidenceGenerated: false, evidence: null });
-          }
-          
-          const evidenceType = getEvidenceType(evidence.emoji);
-          if (existingTypes.has(evidenceType)) {
-            console.log('❌ Duplicate type blocked:', evidenceType);
-            return NextResponse.json({ evidenceGenerated: false, evidence: null });
-          }
-          
-          console.log('✅ Evidence generated:', evidence.name);
-          return NextResponse.json({
-            evidenceGenerated: true,
-            evidence: evidence
-          });
         }
       }
       
@@ -209,30 +206,4 @@ If no valid evidence should be generated, respond with EXACTLY: NO_EVIDENCE`;
       evidence: null
     });
   }
-}
-
-// Helper function to determine evidence type from emoji
-function getEvidenceType(emoji: string): string {
-  const typeMap: Record<string, string[]> = {
-    'phone': ['📱', '📞', '☎️'],
-    'wine/bottle': ['🍷', '🍾', '🥂', '🍼'],
-    'clothing/fabric': ['👔', '🧵', '👗', '🧣', '🧥'],
-    'document/paper': ['📋', '📄', '📝', '💰'],
-    'key': ['🔑', '🗝️'],
-    'footwear': ['👟', '👠', '👞', '👢'],
-    'computer': ['💻', '🖥️'],
-    'blood': ['🩸', '🔴', '💧', '🩹'],
-    'camera': ['📷', '📹'],
-    'time/watch': ['⏰', '⌚'],
-    'fingerprints': ['👆', '🖐️', '✋', '🤚'],
-    'location/garden': ['🌿', '🏡', '🌳', '🌷']
-  };
-
-  for (const [type, emojis] of Object.entries(typeMap)) {
-    if (emojis.includes(emoji)) {
-      return type;
-    }
-  }
-  
-  return emoji; // Return emoji itself as type if not mapped
 }

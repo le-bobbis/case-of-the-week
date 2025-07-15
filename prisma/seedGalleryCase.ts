@@ -38,7 +38,43 @@ async function seedGalleryCase() {
       background: 'Built the gallery from nothing over 20 years. Known for discovering emerging artists. Recently expanded into modern art despite criticism.',
       secrets: 'Has been selling forgeries of famous works to private collectors. Beatrice discovered this and was planning to expose him in tomorrow\'s review.',
       alibi: 'Claims he was in his office making calls to collectors about sales from tonight.',
-      isKiller: true
+      isKiller: true,
+      timeline: [
+        {
+          time: "8:30 PM",
+          action: "Gave opening speech welcoming guests",
+          location: "Main gallery",
+          observable: true,
+          witnesses: ["All attendees"]
+        },
+        {
+          time: "9:00 PM",
+          action: "Nervously pulled Beatrice aside for private chat",
+          location: "Office hallway",
+          observable: true,
+          witnesses: ["Marina Chen", "Dr. Amelia Sterling"]
+        },
+        {
+          time: "9:15 PM",
+          action: "Saw Beatrice go outside, followed after a moment",
+          location: "Gallery back entrance",
+          observable: true,
+          witnesses: ["Leo Winters (taking photos nearby)"]
+        },
+        {
+          time: "9:25 PM",
+          action: "Confronted and strangled Beatrice in sculpture garden",
+          location: "Sculpture garden",
+          observable: false
+        },
+        {
+          time: "9:40 PM",
+          action: "Returned through office entrance, claiming calls",
+          location: "Private office",
+          observable: true,
+          witnesses: ["Dr. Amelia Sterling (saw him return)"]
+        }
+      ]
     },
     {
       caseId: galleryCase.id,
