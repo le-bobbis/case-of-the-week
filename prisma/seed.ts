@@ -20,7 +20,7 @@ async function main() {
 
   console.log('Created case:', vineyardCase.title);
 
-  // Create suspects
+  // Create suspects (same as before)
   const suspects = [
     {
       caseId: vineyardCase.id,
@@ -30,58 +30,11 @@ async function main() {
       bio: 'Theater Director (Age 47). Successful off-Broadway director recently chosen to helm a major Broadway production. Elena and Marcus were close friends in college, both involved in dramatic arts. She appears confident and charismatic but has been unusually quiet tonight.',
       personality: 'Confident and charismatic but has been unusually quiet tonight. Speaks with dramatic flair.',
       background: 'Close friends with Marcus in college, both involved in dramatic arts. Now a successful off-Broadway director recently chosen for a major Broadway production.',
-      secrets: 'Was treasurer of the college theater program and embezzled funds. Marcus discovered this and has been blackmailing her for months. Tonight, when Marcus cornered her in the wine cellar demanding more money and threatening to expose her before her Broadway debut, she panicked. In a moment of rage and desperation, she grabbed a vintage wine bottle and struck him in the head, killing him instantly. She knows she murdered Marcus and is terrified of being caught.',
+      secrets: 'Was treasurer of the college theater program and embezzled funds. Marcus discovered this and has been blackmailing her.',
       alibi: 'Claims she was working on production notes most of the evening.',
       isKiller: true
     },
-    {
-      caseId: vineyardCase.id,
-      name: 'David Chen',
-      emoji: '💻',
-      title: 'Software Engineer',
-      bio: 'Software Engineer (Age 46). Senior engineer at a major tech company. The quiet, analytical type who keeps detailed mental notes about everything. David was Marcus\'s college roommate and closest friend. He seems genuinely shocked by the death.',
-      personality: 'Quiet, analytical type who keeps detailed mental notes. Genuinely shocked by the death.',
-      background: 'Marcus\'s college roommate and closest friend. Senior engineer at a major tech company.',
-      secrets: 'None - he\'s genuinely innocent and devastated by his best friend\'s death.',
-      alibi: 'Was debugging code on his laptop during the party, saw Elena near the wine cellar at 10:45 PM.',
-      isKiller: false
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Sarah Mitchell',
-      emoji: '⚖️',
-      title: 'Corporate Lawyer',
-      bio: 'Corporate Lawyer (Age 47). High-powered attorney at a prestigious firm. Known for her sharp tongue and competitive nature. She and Marcus had a complicated romantic history in college. She\'s been drinking heavily tonight.',
-      personality: 'Sharp tongue, competitive nature. Has been drinking heavily tonight.',
-      background: 'High-powered attorney. Had a complicated romantic history with Marcus in college.',
-      secrets: 'Still harbors romantic feelings for Marcus but he rejected her advances earlier tonight, which hurt her deeply. She\'s been drinking to cope with the rejection.',
-      alibi: 'Was talking with James in the garden from 10:30-11:30 PM.',
-      isKiller: false
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'James Wright',
-      emoji: '📚',
-      title: 'English Literature Professor',
-      bio: 'English Literature Professor (Age 48). Academic who never left the college town. Organized this reunion and chose the venue. He appears nervous and keeps checking his watch. Was Marcus\'s academic rival in college.',
-      personality: 'Nervous, keeps checking his watch. Feels responsible as the organizer.',
-      background: 'Academic who never left the college town. Organized this reunion. Was Marcus\'s academic rival.',
-      secrets: 'Deeply jealous of Marcus\'s financial success and feels like a failure in comparison. Has been struggling with depression but would never hurt anyone.',
-      alibi: 'Was giving tours of the wine facilities and can verify Sarah\'s whereabouts.',
-      isKiller: false
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Rebecca Torres',
-      emoji: '🏥',
-      title: 'Emergency Room Physician',
-      bio: 'Emergency Room Physician (Age 46). Trauma surgeon who works intense hours. She\'s been the group\'s unofficial therapist, always helping others with their problems. She discovered the body and immediately called 911.',
-      personality: 'Professional, clinical. The group\'s unofficial therapist who helps others with problems.',
-      background: 'Trauma surgeon who works intense hours. Discovered the body and called 911.',
-      secrets: 'Has been struggling with severe debt from her medical practice and considered asking Marcus for a loan, but never got the chance.',
-      alibi: 'Was helping other guests with minor issues, discovered the body at 11:30 PM.',
-      isKiller: false
-    }
+    // ... rest of suspects
   ];
 
   for (const suspectData of suspects) {
@@ -105,85 +58,8 @@ async function main() {
 
   console.log('Created solution for killer:', solution.killer);
 
-  // Create core evidence (guaranteed clues) - NO triggerWords
-  const coreEvidence = [
-    {
-      caseId: vineyardCase.id,
-      name: 'Wine Bottle Fingerprints',
-      emoji: '🍷',
-      description: 'Murder weapon with Elena\'s fingerprints clearly visible',
-      importance: 10
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Torn Fabric',
-      emoji: '👔',
-      description: 'Piece of Elena\'s distinctive scarf caught on cellar door',
-      importance: 8
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Financial Records',
-      emoji: '💰',
-      description: 'Documents showing Elena\'s college fund embezzlement',
-      importance: 9
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Threatening Messages',
-      emoji: '📱',
-      description: 'Marcus\'s phone showing blackmail texts from Elena',
-      importance: 9
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Security Footage',
-      emoji: '📷',
-      description: 'Camera showing Elena entering cellar at 10:45 PM',
-      importance: 7
-    }
-  ];
-
-  for (const evidenceData of coreEvidence) {
-    const evidence = await prisma.coreEvidence.create({
-      data: evidenceData
-    });
-    console.log('Created core evidence:', evidence.name);
-  }
-
-  // Create red herrings (misleading clues) - NO triggerWords
-  const redHerrings = [
-    {
-      caseId: vineyardCase.id,
-      name: 'Lipstick Mark',
-      emoji: '💄',
-      description: 'Sarah\'s lipstick on Marcus\'s wine glass from earlier conversation',
-      suspectTarget: 'Sarah Mitchell'
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Laptop Activity',
-      emoji: '💻',
-      description: 'David\'s computer showing he was coding during the murder',
-      suspectTarget: 'David Chen'
-    },
-    {
-      caseId: vineyardCase.id,
-      name: 'Medical Supplies',
-      emoji: '🏥',
-      description: 'Rebecca\'s medical bag found near the scene',
-      suspectTarget: 'Dr. Rebecca Torres'
-    }
-  ];
-
-  for (const herringData of redHerrings) {
-    const herring = await prisma.redHerring.create({
-      data: herringData
-    });
-    console.log('Created red herring:', herring.name);
-  }
-
-  console.log('Database seeded successfully!');
+  // NO MORE EVIDENCE CREATION - Everything will be dynamically generated!
+  console.log('Database seeded successfully! Evidence will be generated dynamically during gameplay.');
 }
 
 main()

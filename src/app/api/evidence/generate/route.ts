@@ -18,8 +18,7 @@ export async function POST(request: NextRequest) {
       existingEvidence, 
       conversationHistory,
       actionsRemaining,
-      evidenceCount,
-      biasContext // New parameter from inspect API
+      evidenceCount
     } = await request.json();
 
     // Fetch the active case and its solution from database
@@ -27,9 +26,7 @@ export async function POST(request: NextRequest) {
       where: { isActive: true },
       include: {
         solution: true,
-        suspects: true,
-        coreEvidence: true,
-        redHerrings: true
+        suspects: true
       }
     });
 
@@ -69,24 +66,6 @@ Do NOT create ANY new evidence in these categories, even with different names or
       ? `Recent conversation: ${conversationHistory.slice(-6).map((msg: ChatMessage) => msg.text).join(' ')}`
       : 'First interaction.';
 
-    // Build bias context for evidence generation
-    let biasInstructions = '';
-    if (biasContext?.shouldBiasTowardKiller && biasContext.availableKillerEvidence?.length > 0) {
-      biasInstructions = `
-BIAS TOWARD KILLER EVIDENCE: This interaction has been flagged to favor evidence pointing toward ${biasContext.killerName}. 
-Available killer evidence to potentially discover:
-${biasContext.availableKillerEvidence.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description}`).join('\n')}
-
-Increase generation probability for killer evidence by 40% when the context suggests these items.`;
-    } else if (biasContext?.availableRedHerrings?.length > 0) {
-      biasInstructions = `
-NEUTRAL/RED HERRING BIAS: This interaction favors neutral or misleading evidence.
-Available red herring evidence:
-${biasContext.availableRedHerrings.map((e: any) => `- ${e.emoji} ${e.name}: ${e.description}`).join('\n')}
-
-Favor red herring evidence generation if appropriate to the context.`;
-    }
-
     const prompt = `You are the evidence manager for "${activeCase.title}" murder mystery game.
 
 CASE CONTEXT:
@@ -106,14 +85,6 @@ ${conversationContext}
 Actions remaining: ${actionsRemaining}/20
 Evidence already found: ${evidenceCount}/20
 
-${biasInstructions}
-
-GENERATION FREQUENCY:
-- If evidence count is 0-3: Be more generous (help player get started)
-- If evidence count is 4-10: Be selective (only strong mentions)
-- If evidence count is 11-15: Be very selective (only critical evidence)
-- If evidence count is 16+: Almost never generate (player has enough)
-
 YOUR TASK:
 Analyze the character's response. Does it contain any interesting nouns, objects, or concepts that could become a physical piece of evidence? 
 
@@ -125,17 +96,16 @@ EVIDENCE GENERATION THRESHOLD:
   * Vague object reference: 20% chance  
   * Scene description only: 5% chance
   * Emotional/character descriptions: 0% chance
-  * ${biasContext?.shouldBiasTowardKiller ? 'Killer evidence when context matches: +40% chance' : ''}
 
 Examples that SHOULD generate evidence:
-- "I saw Elena drop her scarf near the door"
+- "I saw someone drop their scarf near the door"
 - "There was a phone on the table with missed calls"
-- "Marcus's wallet fell out during the struggle"
+- "I saw his wallet fell out during the struggle"
 - "A broken wine bottle lies at the foot of the bed"
 
 Examples that should NOT generate evidence:
 - "The room smelled musty" (too vague)
-- "Elena looked nervous" (not physical)
+- "She looked nervous" (no physical object)
 - "It was a chaotic scene" (general description)
 - "Wine was everywhere" (too general unless specific bottle mentioned) 
 
@@ -152,18 +122,18 @@ CRITICAL: Do NOT generate evidence for objects of the same TYPE already discover
 If ANY evidence in a category exists, do NOT create more in that category.
 
 EVIDENCE GENERATION RULES:
-1. If ANY physical object is mentioned, consider generating evidence
-2. Objects to consider when generating evidence: weapons (real or potential), personal electronics, keys, clothing items, documents, cameras, setting features, etc.
+1. Consider generating evidence if there's a STRONG, DIRECT mention of a physical object
+2. Objects to consider when generating evidence: weapons (real or potential), personal items, keys, clothing items, documents, cameras, setting features, etc.
 3. Locations can generate evidence if they contain specific details (scratches on door, stains on floor, etc.)
 4. Maximum ONE piece of evidence per response
 5. Evidence should feel natural and connected to what was just discussed
 6. Can be either a REAL CLUE (points toward the killer) or RED HERRING (misleading)
 7. Must not duplicate existing evidence CATEGORIES - check the category list above
-8. Evidence must be realistic for this murder scene investigation
+8. Evidence must be realistic for this murder investigation
 9. When in doubt about duplicates, choose NO_EVIDENCE rather than risk creating similar evidence
 10. ONLY use character names from this case: ${suspectNames}, ${activeCase.victim} (victim)
 11. Do NOT invent new characters - stick to the established suspects from the database
-12. INSPECT commands should generate evidence RARELY - only if something very specific and important is discovered
+12. INSPECT commands should generate evidence ONLY if something specific or unique is discovered
 13. Evidence should be SIGNIFICANT - not trivial details like smells or general descriptions
 14. Prefer NO_EVIDENCE over weak or marginal evidence
 
@@ -216,7 +186,6 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
     console.log('🧩 EVIDENCE GENERATION DEBUG:');
     console.log('- Player Question:', playerQuestion);
     console.log('- Character Response:', characterResponse);
-    console.log('- Bias Context:', biasContext?.shouldBiasTowardKiller ? 'KILLER BIAS' : 'NEUTRAL');
     console.log('- AI Decision:', response.trim());
     
     // Handle NO_EVIDENCE response
@@ -272,7 +241,6 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
           }
           
           console.log('✅ Evidence successfully generated:', evidence.name);
-          console.log('- Bias influenced:', biasContext?.shouldBiasTowardKiller ? 'Yes (toward killer)' : 'No');
           return NextResponse.json({
             evidenceGenerated: true,
             evidence: evidence

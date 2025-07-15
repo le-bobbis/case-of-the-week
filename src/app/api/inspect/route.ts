@@ -28,9 +28,7 @@ export async function POST(request: NextRequest) {
       where: { isActive: true },
       include: {
         solution: true,
-        suspects: true,
-        coreEvidence: true,
-        redHerrings: true
+        suspects: true
       }
     });
 
@@ -45,21 +43,16 @@ export async function POST(request: NextRequest) {
     // Determine if we should bias toward killer (30% chance)
     const shouldBiasTowardKiller = Math.random() < 0.3;
     
-    console.log('🎯 Bias Decision:', shouldBiasTowardKiller ? 'KILLER BIAS' : 'NEUTRAL/RED HERRING');
+    console.log('🎯 Bias Decision:', shouldBiasTowardKiller ? 'KILLER BIAS' : 'NEUTRAL');
 
     // Get killer information
     const killer = activeCase.suspects.find(s => s.name === activeCase.solution!.killer);
     const killerFirstName = killer ? killer.name.split(' ')[0] : '';
 
-    // Build evidence context for what hasn't been discovered yet
-    const discoveredEvidenceIds = new Set(gameState.evidence?.map((e: any) => e.id) || []);
-    const availableCoreEvidence = activeCase.coreEvidence.filter(e => !discoveredEvidenceIds.has(e.name.toLowerCase().replace(/\s+/g, '_')));
-    const availableRedHerrings = activeCase.redHerrings.filter(e => !discoveredEvidenceIds.has(e.name.toLowerCase().replace(/\s+/g, '_')));
-
     // Create contextual guidance for the AI
     const biasGuidance = shouldBiasTowardKiller 
-      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}. Available killer evidence: ${availableCoreEvidence.map(e => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}`
-      : `NEUTRAL/RED HERRING BIAS: Look for ways to connect this inspection to misleading evidence or general scene details. Available red herrings: ${availableRedHerrings.map(e => `${e.emoji} ${e.name} - ${e.description}`).join(', ')}`;
+      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}. Focus on objects or details that could relate to their motive, method, or presence at the scene.`
+      : `NEUTRAL BIAS: Look for general scene details or objects that could be evidence. May point toward any suspect or be neutral/misleading.`;
 
     const prompt = `You are the game master for the murder mystery "${activeCase.title}". 
 ${activeCase.victim} was found dead in ${activeCase.setting}, struck with ${activeCase.murderWeapon}.
@@ -82,7 +75,7 @@ The player wants to inspect: "${inspection}"
 
 INSTRUCTIONS:
 - Provide a brief description of what they find during their investigation
-- Keep responses to EXACTLY 1-3 FULL sentences, no more than 25 words.
+- Keep responses to NO MORE THAN 1-3 FULL sentences. IMPORTANT: 20 words or fewer.
 - Be concise and descriptive
 - Do NOT include any actions, asterisks, or stage directions - just describe what is observed
 - Stay within the murder mystery setting described above
@@ -109,9 +102,9 @@ Describe what the player observes when inspecting "${inspection}":`;
     const result = message.content[0].type === 'text' ? message.content[0].text : 'You examine the area carefully but find nothing particularly noteworthy.';
     
     console.log('- Inspection Result:', result);
-    console.log('- Bias Applied:', shouldBiasTowardKiller ? 'Killer-focused' : 'Neutral/Misleading');
+    console.log('- Bias Applied:', shouldBiasTowardKiller ? 'Killer-focused' : 'Neutral');
 
-    // Call your existing evidence generation API with enhanced context
+    // Call your existing evidence generation API
     let evidenceGenerated = false;
     let evidence = null;
 
@@ -128,14 +121,7 @@ Describe what the player observes when inspecting "${inspection}":`;
           existingEvidence: gameState.evidence || [],
           conversationHistory: gameState.inspectLog || [],
           actionsRemaining: gameState.actionsRemaining,
-          evidenceCount: gameState.evidence?.length || 0,
-          // Add bias context for evidence generation (without triggerWords)
-          biasContext: {
-            shouldBiasTowardKiller,
-            killerName: activeCase.solution.killer,
-            availableKillerEvidence: availableCoreEvidence,
-            availableRedHerrings: availableRedHerrings
-          }
+          evidenceCount: gameState.evidence?.length || 0
         })
       });
 
