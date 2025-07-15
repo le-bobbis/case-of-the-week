@@ -12,10 +12,10 @@ export default function EvidenceGrid({ evidence }: EvidenceGridProps) {
         {Array.from({ length: 20 }, (_, index) => {
           const evidenceItem = evidence[index];
           return (
-            <div
+              <div
               key={index}
               className={`evidence-slot ${evidenceItem ? 'filled' : ''}`}
-              title={evidenceItem?.description || ''} // Use description for hover in main game
+              title={evidenceItem ? `${evidenceItem.name}: ${evidenceItem.description}` : ''} // Show name and description
             >
               {evidenceItem ? evidenceItem.emoji : '?'}
             </div>

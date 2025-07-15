@@ -34,7 +34,7 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
       return;
     }
     
-    const newValue = question + (question ? ' ' : '') + evidenceItem.description;
+    const newValue = question + (question ? ' ' : '') + evidenceItem.name;
     console.log('New value would be:', newValue);
     
     if (newValue.length <= 100) {
@@ -132,7 +132,7 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
                   color: '#fff'
                 }}
                 onClick={() => handleEvidenceClick(item)}
-                title={item.description}
+                title={`${item.name}: ${item.description}`}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)';
                   e.currentTarget.style.transform = 'scale(1.05)';

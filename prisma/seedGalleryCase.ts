@@ -111,17 +111,17 @@ async function seedGalleryCase() {
         },
         {
           time: "9:25 PM",
-          action: "In installation room with potential buyer Mr. Harrison",
+          action: "In installation room discussing her work",
           location: "Installation room",
           observable: true,
-          witnesses: ["Mr. Harrison (buyer)"]
+          witnesses: ["Gallery assistant"]
         },
         {
           time: "9:40 PM",
-          action: "Still discussing sales with Mr. Harrison",
+          action: "Still in installation room with potential buyers",
           location: "Installation room",
           observable: true,
-          witnesses: ["Mr. Harrison", "Gallery assistant"]
+          witnesses: ["Gallery assistant"]
         }
       ]
     },
@@ -166,10 +166,10 @@ async function seedGalleryCase() {
         },
         {
           time: "9:30 PM",
-          action: "Discussing a Monet purchase with Mrs. Wellington",
+          action: "Discussing a painting purchase with another collector",
           location: "Main gallery",
           observable: true,
-          witnesses: ["Mrs. Wellington", "Two other collectors"]
+          witnesses: ["Other collectors"]
         }
       ]
     },

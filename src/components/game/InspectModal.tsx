@@ -38,7 +38,7 @@ export default function InspectModal({ isOpen, inspectLog, evidence, onClose, on
       return;
     }
     
-    const newValue = inspection + (inspection ? ' ' : '') + evidenceItem.description;
+    const newValue = inspection + (inspection ? ' ' : '') + evidenceItem.name;
     console.log('New value would be:', newValue);
     
     if (newValue.length <= 50) {
@@ -119,7 +119,7 @@ export default function InspectModal({ isOpen, inspectLog, evidence, onClose, on
                   color: '#fff'
                 }}
                 onClick={() => handleEvidenceClick(item)}
-                title={item.description}
+                title={`${item.name}: ${item.description}`}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)';
                   e.currentTarget.style.transform = 'scale(1.05)';
