@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Create contextual guidance for the AI
     const biasGuidance = shouldBiasTowardKiller 
-      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}. Focus on objects or details that could relate to their motive, method, or presence at the scene.`
+      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}, WITHOUT naming ${killerFirstName}. Focus on objects or details that could relate to their motive, method, or presence at the scene.`
       : `NEUTRAL BIAS: Look for general scene details or objects that could be evidence. May point toward any suspect or be neutral/misleading.`;
 
     const prompt = `You are the game master for the murder mystery "${activeCase.title}". 
@@ -115,7 +115,7 @@ Describe what the player observes when inspecting "${inspection}":`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          playerQuestion: `Inspect ${inspection}`,
+          playerQuestion: `Investigate ${inspection}`,
           characterResponse: result,
           characterName: shouldBiasTowardKiller ? killerFirstName : 'Investigation',
           existingEvidence: gameState.evidence || [],

@@ -43,22 +43,34 @@ export async function POST(request: NextRequest) {
 
     // Build context for existing evidence to prevent duplicates
     const existingCategories = new Set();
+    const existingEmojis = new Set();
     const existingEvidenceContext = existingEvidence.length > 0 
       ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => {
-          // Track categories
-          if (e.emoji === '📱') existingCategories.add('PHONE');
-          if (e.emoji === '🍷' || e.emoji === '🍾') existingCategories.add('WINE');
-          if (e.emoji === '👔' || e.emoji === '🧵' || e.emoji === '👗') existingCategories.add('FABRIC');
-          if (e.emoji === '📋' || e.emoji === '📄' || e.emoji === '📝') existingCategories.add('DOCUMENT');
-          if (e.emoji === '🔑') existingCategories.add('KEY');
-          if (e.emoji === '👟' || e.emoji === '👠') existingCategories.add('FOOTWEAR');
-          if (e.emoji === '💻') existingCategories.add('COMPUTER');
+          // Track categories AND specific emojis
+          existingEmojis.add(e.emoji);
+          
+          // Track categories with expanded emoji mappings
+          if (['📱', '📞', '☎️'].includes(e.emoji)) existingCategories.add('PHONE');
+          if (['🍷', '🍾', '🥂', '🍇'].includes(e.emoji)) existingCategories.add('WINE');
+          if (['👔', '🧵', '👗', '👚', '🧥', '🧣'].includes(e.emoji)) existingCategories.add('FABRIC');
+          if (['📋', '📄', '📝', '📃', '📑', '💰'].includes(e.emoji)) existingCategories.add('DOCUMENT');
+          if (['🔑', '🗝️'].includes(e.emoji)) existingCategories.add('KEY');
+          if (['👟', '👠', '👞', '👢'].includes(e.emoji)) existingCategories.add('FOOTWEAR');
+          if (['💻', '🖥️', '⌨️'].includes(e.emoji)) existingCategories.add('COMPUTER');
+          if (['💐', '🌸', '🌹', '💄'].includes(e.emoji)) existingCategories.add('PERFUME/COSMETICS');
+          if (['🎭', '🎪', '🎨'].includes(e.emoji)) existingCategories.add('THEATER/ART');
+          if (['⏰', '⌚', '🕐'].includes(e.emoji)) existingCategories.add('TIME');
+          if (['🩸', '🔴'].includes(e.emoji)) existingCategories.add('BLOOD');
+          if (['📷', '📹', '🎥'].includes(e.emoji)) existingCategories.add('CAMERA');
           
           return `${e.emoji} ${e.name} - ${e.description}`;
         }).join(', ')}
 
-CRITICAL: These evidence CATEGORIES already exist and MUST NOT be duplicated: ${Array.from(existingCategories).join(', ')}
-Do NOT create ANY new evidence in these categories, even with different names or descriptions.`
+CRITICAL DUPLICATE RULES:
+1. These evidence CATEGORIES already exist and MUST NOT be duplicated: ${Array.from(existingCategories).join(', ')}
+2. These EXACT EMOJIS have been used: ${Array.from(existingEmojis).join(', ')}
+3. Do NOT create ANY new evidence in existing categories, even with different names/descriptions
+4. Do NOT reuse any emoji that has already been used`
       : 'No evidence discovered yet.';
 
     // Build conversation context
