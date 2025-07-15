@@ -14,7 +14,8 @@ export async function GET() {
             name: true,
             emoji: true,
             title: true,
-            bio: true
+            bio: true,
+            timeline: true  // Add timeline to the selection
           }
         }
       }

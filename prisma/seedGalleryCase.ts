@@ -26,7 +26,7 @@ async function seedGalleryCase() {
 
   console.log('Created case:', galleryCase.title);
 
-  // Create suspects
+  // Create suspects with complete timelines
   const suspects = [
     {
       caseId: galleryCase.id,
@@ -86,7 +86,44 @@ async function seedGalleryCase() {
       background: 'Young artist whose provocative work has divided critics. Tonight\'s show could make or break her career. Beatrice previously wrote a devastating review of her debut.',
       secrets: 'Plagiarized concepts from an unknown Eastern European artist. Only Beatrice knew the original source.',
       alibi: 'Says she was in the installation room adjusting her pieces and talking to potential buyers.',
-      isKiller: false
+      isKiller: false,
+      timeline: [
+        {
+          time: "8:45 PM",
+          action: "Nervously adjusting her main installation piece",
+          location: "Installation room",
+          observable: true,
+          witnesses: ["Several guests", "Gallery staff"]
+        },
+        {
+          time: "9:00 PM",
+          action: "Overheard Jasper's tense conversation with Beatrice",
+          location: "Near office hallway",
+          observable: true,
+          witnesses: ["Dr. Amelia Sterling"]
+        },
+        {
+          time: "9:10 PM",
+          action: "Drinking heavily at the bar, visibly upset",
+          location: "Gallery bar area",
+          observable: true,
+          witnesses: ["Victor Rothschild", "Other guests"]
+        },
+        {
+          time: "9:25 PM",
+          action: "In installation room with potential buyer Mr. Harrison",
+          location: "Installation room",
+          observable: true,
+          witnesses: ["Mr. Harrison (buyer)"]
+        },
+        {
+          time: "9:40 PM",
+          action: "Still discussing sales with Mr. Harrison",
+          location: "Installation room",
+          observable: true,
+          witnesses: ["Mr. Harrison", "Gallery assistant"]
+        }
+      ]
     },
     {
       caseId: galleryCase.id,
@@ -98,7 +135,43 @@ async function seedGalleryCase() {
       background: 'Inherited fortune and art collection from his family. Has been quietly selling pieces due to financial troubles. Major patron of the gallery.',
       secrets: 'Has been selling his family\'s collection to cover massive gambling debts. Beatrice was investigating the suspicious sales.',
       alibi: 'Claims he was in the main gallery examining the paintings and discussing purchases with other collectors.',
-      isKiller: false
+      isKiller: false,
+      timeline: [
+        {
+          time: "8:30 PM",
+          action: "Arrived in chauffeur-driven car, greeted by Jasper",
+          location: "Gallery entrance",
+          observable: true,
+          witnesses: ["Jasper Whitmore", "Gallery staff"]
+        },
+        {
+          time: "9:00 PM",
+          action: "Examining paintings with other collectors",
+          location: "Main gallery",
+          observable: true,
+          witnesses: ["Other collectors", "Gallery patrons"]
+        },
+        {
+          time: "9:10 PM",
+          action: "Brief encounter with Marina at the bar",
+          location: "Gallery bar area",
+          observable: true,
+          witnesses: ["Marina Chen"]
+        },
+        {
+          time: "9:20 PM",
+          action: "Received urgent phone call about debts",
+          location: "Gallery foyer",
+          observable: false
+        },
+        {
+          time: "9:30 PM",
+          action: "Discussing a Monet purchase with Mrs. Wellington",
+          location: "Main gallery",
+          observable: true,
+          witnesses: ["Mrs. Wellington", "Two other collectors"]
+        }
+      ]
     },
     {
       caseId: galleryCase.id,
@@ -110,7 +183,43 @@ async function seedGalleryCase() {
       background: 'Published professor at prestigious university. Her academic book was overshadowed by Beatrice\'s popular art guide. Long-standing professional rivalry.',
       secrets: 'Has been having an affair with Jasper and helped authenticate some of his forgeries. Beatrice recently discovered this.',
       alibi: 'Says she was in the library alcove reading the exhibition catalog and making notes.',
-      isKiller: false
+      isKiller: false,
+      timeline: [
+        {
+          time: "8:40 PM",
+          action: "Gave impromptu lecture about the installations",
+          location: "Installation room",
+          observable: true,
+          witnesses: ["Group of students", "Marina Chen"]
+        },
+        {
+          time: "9:00 PM",
+          action: "Witnessed Jasper and Beatrice's tense exchange",
+          location: "Office hallway",
+          observable: true,
+          witnesses: ["Marina Chen"]
+        },
+        {
+          time: "9:15 PM",
+          action: "Retreated to library alcove with exhibition catalog",
+          location: "Library alcove",
+          observable: true,
+          witnesses: ["Gallery assistant bringing her wine"]
+        },
+        {
+          time: "9:30 PM",
+          action: "Making detailed notes about the exhibition",
+          location: "Library alcove",
+          observable: false
+        },
+        {
+          time: "9:40 PM",
+          action: "Saw Jasper returning, looked flustered",
+          location: "Near office entrance",
+          observable: true,
+          witnesses: ["Jasper Whitmore"]
+        }
+      ]
     },
     {
       caseId: galleryCase.id,
@@ -122,7 +231,50 @@ async function seedGalleryCase() {
       background: 'Young photographer trying to establish himself in the art world. Previously worked as Beatrice\'s assistant before a bitter falling out.',
       secrets: 'Beatrice destroyed his first exhibition with a cruel review after he refused her romantic advances. Has been planning revenge.',
       alibi: 'Claims he was taking photos throughout the gallery and has timestamps to prove it.',
-      isKiller: false
+      isKiller: false,
+      timeline: [
+        {
+          time: "8:00 PM",
+          action: "Setting up photography equipment",
+          location: "Main gallery",
+          observable: true,
+          witnesses: ["Gallery staff", "Early arrivals"]
+        },
+        {
+          time: "8:45 PM",
+          action: "Photographing Marina's installations",
+          location: "Installation room",
+          observable: true,
+          witnesses: ["Marina Chen", "Gallery guests"]
+        },
+        {
+          time: "9:10 PM",
+          action: "Taking candid shots of guests",
+          location: "Main gallery and bar area",
+          observable: true,
+          witnesses: ["Multiple guests"]
+        },
+        {
+          time: "9:15 PM",
+          action: "Photographing near back entrance, saw Jasper follow Beatrice",
+          location: "Near gallery back entrance",
+          observable: true,
+          witnesses: ["Jasper Whitmore (who saw him)"]
+        },
+        {
+          time: "9:25 PM",
+          action: "Photographing sculptures in the garden",
+          location: "Sculpture garden (different area)",
+          observable: false
+        },
+        {
+          time: "9:45 PM",
+          action: "Discovered Beatrice's body while photographing",
+          location: "Sculpture garden",
+          observable: true,
+          witnesses: ["First to raise alarm"]
+        }
+      ]
     }
   ];
 
