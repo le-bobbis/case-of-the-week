@@ -14,12 +14,14 @@ export async function POST(request: NextRequest) {
     console.log('💬 CHAT REQUEST:');
     console.log('- Suspect:', suspectId);
     console.log('- Question:', question);
+    console.log('- Actions Remaining:', gameState.actionsRemaining);
     
-    // Get the active case with suspects
+    // Get the active case with all details
     const activeCase = await prisma.case.findFirst({
       where: { isActive: true },
       include: {
-        suspects: true
+        suspects: true,
+        solution: true
       }
     });
 
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No active case found' }, { status: 404 });
     }
 
-    // Find the specific suspect by their name (suspectId is lowercase name)
+    // Find the specific suspect
     const suspect = activeCase.suspects.find(s => 
       s.name.toLowerCase().includes(suspectId.toLowerCase())
     );
@@ -36,88 +38,84 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid suspect' }, { status: 400 });
     }
 
-     // Build conversation history for context
-    const conversationHistory = gameState.evidence?.length > 0 
-      ? `Evidence discovered so far:
-${gameState.evidence.map((e: { emoji: string, name: string, description: string }) => 
-  `- ${e.emoji} ${e.name}: ${e.description}`
-).join('\n')}`
-      : 'No evidence has been discovered yet.';
+    // Build conversation history
+    const conversationHistory = gameState.suspectsData?.[suspectId]?.chatLog?.length > 0
+      ? gameState.suspectsData[suspectId].chatLog.map((msg: any) => msg.text).join('\n')
+      : 'No previous conversation.';
 
-    const prompt = `You are ${suspect.name}, a ${suspect.title} in the murder mystery case "${activeCase.title}".
+    // Build evidence context
+    const evidenceContext = gameState.evidence?.length > 0
+      ? gameState.evidence.map((e: any) => `${e.emoji} ${e.name}: ${e.description}`).join('\n')
+      : 'No evidence discovered yet.';
 
-CHARACTER PROFILE:
+    // Build inspection history
+    const inspectionHistory = gameState.inspectLog?.length > 0
+      ? gameState.inspectLog.map((log: any) => log.text).join('\n')
+      : 'No inspections conducted.';
+
+    const prompt = `You are ${suspect.name}, a ${suspect.title} in "${activeCase.title}".
+
+CASE FACTS:
+- Victim: ${activeCase.victim}
+- Location: ${activeCase.setting}
+- Time: ${activeCase.murderTime}
+- Weapon: ${activeCase.murderWeapon}
+
+YOUR CHARACTER:
+- Name: ${suspect.name}
+- Role: ${suspect.title}
 - Personality: ${suspect.personality}
 - Background: ${suspect.background}
 - Secret: ${suspect.secrets}
-- Your alibi: ${suspect.alibi}
+- Alibi: ${suspect.alibi}
+${suspect.isKiller ? '- YOU ARE THE KILLER' : '- You are innocent'}
 
-MURDER CONTEXT:
-${activeCase.victim} was found dead in ${activeCase.setting} at ${activeCase.murderTime}, struck with ${activeCase.murderWeapon}. ${activeCase.description}
+GAME STATE:
+EVIDENCE DISCOVERED:
+${evidenceContext}
 
-CURRENT SITUATION:
+INSPECTION FINDINGS:
+${inspectionHistory}
+
+CONVERSATION HISTORY:
 ${conversationHistory}
-Actions remaining: ${gameState.actionsRemaining}/20
 
-IMPORTANT: The evidence above shows what has been discovered. You should:
-- Acknowledge evidence that directly relates to you
-- React appropriately if evidence implicates you
-- Stay consistent with what evidence reveals
-- Don't mention evidence that hasn't been discovered yet
+The player asks: "${question}"
 
-The player just asked you: "${question}"
+STRICT RULES:
+1. Stay completely in character as ${suspect.name}
+2. Maximum 25 words, in 1-3 COMPLETE sentences
+3. Use only direct speech - no actions, no *descriptions*
+4. Be consistent with all evidence, inspections, and previous statements
+5. Don't contradict established facts or your previous answers
+6. Reference evidence/inspections naturally if relevant
+7. Protect your secrets unless directly confronted with proof
+8. If innocent, you genuinely don't know who did it
 
-INSTRUCTIONS:
-- Stay completely in character as ${suspect.name}
-- Respond with ONLY direct speech - no actions, no *descriptions*, no narration
-- Don't immediately reveal your secrets unless directly confronted with evidence
-- Be helpful but also protective of yourself
-- Keep responses to EXACTLY 1-2 sentences maximum
-- CRITICAL: Each sentence must be complete with proper ending punctuation
-- CRITICAL: Never end mid-sentence or with incomplete thoughts
-- Show emotions through your words, not actions
-- If asked about evidence, respond based on what your character would realistically know
-- Be concise and direct
-- NO asterisks (*), NO action descriptions, NO stage directions - just speak as the character
-- NEVER use phrases like *sighs*, *looks away*, *nervously* etc.
-- MENTION SPECIFIC OBJECTS when reasonable (wine, bottles, phones, keys, etc.)
-
-Example of what NOT to do: 
-- "*nervously fidgets* I don't know anything about that."
-- "Well, I was just trying to... you know, I mean I didn't really see"
-- "That's interesting, but I need to go check on something in the"
-
-Example of what TO do: 
-- "I don't know anything about that."
-- "I was in the garden with James from 10:30 to 11:30."
-- "That wine bottle? I haven't touched it."
-
-Respond as ${suspect.name} with 1-2 complete sentences only:`;
+Respond as ${suspect.name}:`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',
-      max_tokens: 100,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      max_tokens: 80,
+      temperature: 0.7,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
     });
 
-    const response = message.content[0].type === 'text' ? message.content[0].text : '';
+    const response = message.content[0].type === 'text' 
+      ? message.content[0].text 
+      : 'I need a moment to think about that.';
+    
     console.log('- Character Response:', response);
 
-    // Get conversation history for evidence generation
-    const currentSuspect = gameState.suspectsData?.[suspectId];
-    const conversationHistoryForEvidence = currentSuspect?.chatLog || [];
-
-    // Call your existing evidence generation API
+    // Call evidence generation API
     let evidenceGenerated = false;
     let evidence = null;
 
     try {
-      console.log('🧩 CALLING EVIDENCE API...');
+      console.log('🧩 Checking for evidence generation...');
       
       const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
         method: 'POST',
@@ -127,28 +125,21 @@ Respond as ${suspect.name} with 1-2 complete sentences only:`;
           characterResponse: response,
           characterName: suspect.name,
           existingEvidence: gameState.evidence || [],
-          conversationHistory: conversationHistoryForEvidence,
+          conversationHistory: conversationHistory.split('\n').slice(-10), // Last 10 exchanges
           actionsRemaining: gameState.actionsRemaining,
           evidenceCount: gameState.evidence?.length || 0
         })
       });
 
-      console.log('- Evidence API Status:', evidenceResponse.status);
-
       if (evidenceResponse.ok) {
         const evidenceData = await evidenceResponse.json();
-        console.log('- Evidence API Response:', evidenceData);
-        
         evidenceGenerated = evidenceData.evidenceGenerated;
         evidence = evidenceData.evidence;
         
-        console.log('- Evidence Generated:', evidenceGenerated);
-        console.log('- Evidence Object:', evidence);
-      } else {
-        console.error('Evidence API error:', evidenceResponse.status, await evidenceResponse.text());
+        console.log('✅ Evidence check complete:', evidenceGenerated ? 'Found evidence' : 'No evidence');
       }
-    } catch (evidenceError) {
-      console.error('❌ Evidence generation failed:', evidenceError);
+    } catch (error) {
+      console.error('❌ Evidence generation failed:', error);
     }
 
     return NextResponse.json({
@@ -158,7 +149,9 @@ Respond as ${suspect.name} with 1-2 complete sentences only:`;
     });
 
   } catch (error) {
-    console.error('Chat API error:', error);
-    return NextResponse.json({ error: 'Failed to process question' }, { status: 500 });
+    console.error('❌ Chat API error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to process question' 
+    }, { status: 500 });
   }
 }

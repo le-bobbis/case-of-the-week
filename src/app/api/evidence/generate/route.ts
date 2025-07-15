@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { Evidence, ChatMessage } from '@/types/game';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -21,7 +19,11 @@ export async function POST(request: NextRequest) {
       evidenceCount
     } = await request.json();
 
-    // Fetch the active case and its solution from database
+    console.log('🧩 EVIDENCE GENERATION REQUEST:');
+    console.log('- Character Response:', characterResponse);
+    console.log('- Evidence Count:', evidenceCount);
+
+    // Get the active case
     const activeCase = await prisma.case.findFirst({
       where: { isActive: true },
       include: {
@@ -31,228 +33,154 @@ export async function POST(request: NextRequest) {
     });
 
     if (!activeCase || !activeCase.solution) {
-      console.error('No active case or solution found');
+      console.error('❌ No active case found');
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
       });
     }
 
-    // Build suspect names list from database
-    const suspectNames = activeCase.suspects.map(s => s.name).join(', ');
-
-    // Build context for existing evidence to prevent duplicates
-    const existingCategories = new Set();
+    // Build existing evidence tracking for duplicate prevention
+    const existingTypes = new Set();
     const existingEmojis = new Set();
-    const existingEvidenceContext = existingEvidence.length > 0 
-      ? `Already discovered evidence: ${existingEvidence.map((e: Evidence) => {
-          // Track categories AND specific emojis
-          existingEmojis.add(e.emoji);
-          
-          // Track categories with expanded emoji mappings
-          if (['📱', '📞', '☎️'].includes(e.emoji)) existingCategories.add('PHONE');
-          if (['🍷', '🍾', '🥂', '🍇'].includes(e.emoji)) existingCategories.add('WINE');
-          if (['👔', '🧵', '👗', '👚', '🧥', '🧣'].includes(e.emoji)) existingCategories.add('FABRIC');
-          if (['📋', '📄', '📝', '📃', '📑', '💰'].includes(e.emoji)) existingCategories.add('DOCUMENT');
-          if (['🔑', '🗝️'].includes(e.emoji)) existingCategories.add('KEY');
-          if (['👟', '👠', '👞', '👢'].includes(e.emoji)) existingCategories.add('FOOTWEAR');
-          if (['💻', '🖥️', '⌨️'].includes(e.emoji)) existingCategories.add('COMPUTER');
-          if (['💐', '🌸', '🌹', '💄'].includes(e.emoji)) existingCategories.add('PERFUME/COSMETICS');
-          if (['🎭', '🎪', '🎨'].includes(e.emoji)) existingCategories.add('THEATER/ART');
-          if (['⏰', '⌚', '🕐'].includes(e.emoji)) existingCategories.add('TIME');
-          if (['🩸', '🔴'].includes(e.emoji)) existingCategories.add('BLOOD');
-          if (['📷', '📹', '🎥'].includes(e.emoji)) existingCategories.add('CAMERA');
-          
-          return `${e.emoji} ${e.name} - ${e.description}`;
-        }).join(', ')}
+    const existingNames = new Set();
+    
+    const existingEvidenceList = existingEvidence.map((e: any) => {
+      // Track by emoji
+      existingEmojis.add(e.emoji);
+      
+      // Track by name (case-insensitive)
+      existingNames.add(e.name.toLowerCase());
+      
+      // Track object types from emojis
+      if (['📱', '📞', '☎️'].includes(e.emoji)) existingTypes.add('phone');
+      if (['🍷', '🍾', '🥂', '🍼'].includes(e.emoji)) existingTypes.add('wine/bottle');
+      if (['👔', '🧵', '👗', '🧣', '🧥'].includes(e.emoji)) existingTypes.add('clothing/fabric');
+      if (['📋', '📄', '📝', '💰'].includes(e.emoji)) existingTypes.add('document/paper');
+      if (['🔑', '🗝️'].includes(e.emoji)) existingTypes.add('key');
+      if (['👟', '👠', '👞', '👢'].includes(e.emoji)) existingTypes.add('footwear');
+      if (['💻', '🖥️'].includes(e.emoji)) existingTypes.add('computer');
+      if (['🩸', '🔴', '💧', '🩹'].includes(e.emoji)) existingTypes.add('blood');
+      if (['📷', '📹'].includes(e.emoji)) existingTypes.add('camera');
+      if (['⏰', '⌚'].includes(e.emoji)) existingTypes.add('time/watch');
+      if (['👆', '🖐️', '✋', '🤚'].includes(e.emoji)) existingTypes.add('fingerprints');
+      if (['🌿', '🏡', '🌳', '🌷'].includes(e.emoji)) existingTypes.add('location/garden');
+      
+      return `${e.emoji} ${e.name}`;
+    }).join(', ');
 
-CRITICAL DUPLICATE RULES:
-1. These evidence CATEGORIES already exist and MUST NOT be duplicated: ${Array.from(existingCategories).join(', ')}
-2. These EXACT EMOJIS have been used: ${Array.from(existingEmojis).join(', ')}
-3. Do NOT create ANY new evidence in existing categories, even with different names/descriptions
-4. Do NOT reuse any emoji that has already been used`
-      : 'No evidence discovered yet.';
-
-    // Build conversation context
-    const conversationContext = conversationHistory && conversationHistory.length > 0
-      ? `Recent conversation: ${conversationHistory.slice(-6).map((msg: ChatMessage) => msg.text).join(' ')}`
-      : 'First interaction.';
-
-    const prompt = `You are the evidence manager for "${activeCase.title}" murder mystery game.
+    const prompt = `You are managing evidence for "${activeCase.title}" murder mystery.
 
 CASE CONTEXT:
-- Victim: ${activeCase.victim}, killed with ${activeCase.murderWeapon} at ${activeCase.murderTime}
-- Setting: ${activeCase.setting}
+- Victim: ${activeCase.victim}
+- Weapon: ${activeCase.murderWeapon}
 - Killer: ${activeCase.solution.killer}
-- Motive: ${activeCase.solution.killerMotives}
-- Method: ${activeCase.solution.murderMethod}
+- Valid Characters: ${activeCase.suspects.map(s => s.name).join(', ')}, ${activeCase.victim}
 
-CURRENT SITUATION:
-Player asked: "${playerQuestion}"
-Character (${characterName}) responded: "${characterResponse}"
+RESPONSE TO ANALYZE: "${characterResponse}"
+SOURCE: ${characterName === 'Investigation' ? 'INSPECT function' : `${characterName} (suspect)`}
 
-GAME STATE:
-${existingEvidenceContext}
-${conversationContext}
-Actions remaining: ${actionsRemaining}/20
-Evidence already found: ${evidenceCount}/20
+EXISTING EVIDENCE: ${existingEvidenceList || 'None'}
+FORBIDDEN TYPES: ${Array.from(existingTypes).join(', ') || 'None'}
 
-YOUR TASK:
-Analyze the character's response. Does it contain any interesting nouns, objects, or concepts that could become a physical piece of evidence? 
+STRICT RULES:
+1. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
+2. Evidence description must be ONE SENTENCE, maximum 10 words
+3. Description must be purely factual - no interpretation or speculation
+4. Do NOT create evidence of any type that already exists (see FORBIDDEN TYPES)
+5. Do NOT infer or imagine objects that weren't directly mentioned
+6. ONLY use character names from VALID CHARACTERS list - no new people
+7. Inspect responses CAN generate evidence just like suspect responses
 
-EVIDENCE GENERATION THRESHOLD:
-- Only generate evidence if there's a STRONG, DIRECT mention of a physical object
-- Vague descriptions, emotions, or general scene-setting should NOT generate evidence
-- Consider evidence generation probability:
-  * Direct object mention with details: 70% chance
-  * Vague object reference: 20% chance  
-  * Scene description only: 5% chance
-  * Emotional/character descriptions: 0% chance
+VALID EXAMPLES:
+- Suspect: "I dropped my phone near the door" → CREATE phone evidence
+- Inspect: "A broken wine bottle lies on the floor" → CREATE wine bottle evidence
+- Suspect: "I saw Elena's torn scarf" → CREATE scarf/fabric evidence (Elena is valid character)
+- Inspect: "Marcus's wallet sits on the table" → CREATE wallet evidence (Marcus is valid character)
 
-Examples that SHOULD generate evidence:
-- "I saw someone drop their scarf near the door"
-- "There was a phone on the table with missed calls"
-- "I saw his wallet fell out during the struggle"
-- "A broken wine bottle lies at the foot of the bed"
+INVALID EXAMPLES:
+- "I was nervous" → NO EVIDENCE (no object mentioned)
+- "The room was dark" → NO EVIDENCE (no specific object)
+- "Something fell" → NO EVIDENCE (object not specified)
+- "John's keys were there" → NO EVIDENCE (John not in valid characters)
 
-Examples that should NOT generate evidence:
-- "The room smelled musty" (too vague)
-- "She looked nervous" (no physical object)
-- "It was a chaotic scene" (general description)
-- "Wine was everywhere" (too general unless specific bottle mentioned) 
+CRITICAL: 
+- Generate ONLY ONE piece of evidence per response
+- If multiple objects are mentioned, pick the FIRST valid one
+- Response must be COMPLETE JSON - no truncation
 
-CRITICAL: Do NOT generate evidence for objects of the same TYPE already discovered. Check these categories:
-- FABRIC/CLOTHING: torn fabric, scarves, jackets, buttons, threads, fibers
-- WINE/BOTTLES: wine bottles, broken glass, corks, wine stains
-- ELECTRONICS: phones, laptops, tablets, cameras
-- KEYS/LOCKS: any keys, keychains, lock picks
-- DOCUMENTS: papers, notes, letters, records
-- PERSONAL ITEMS: watches, jewelry, wallets, glasses
-- FOOTWEAR: shoes, footprints, shoe marks
-- BLOOD/BODILY: blood, hair, fingerprints
-
-If ANY evidence in a category exists, do NOT create more in that category.
-
-EVIDENCE GENERATION RULES:
-1. Consider generating evidence if there's a STRONG, DIRECT mention of a physical object
-2. Objects to consider when generating evidence: weapons (real or potential), personal items, keys, clothing items, documents, cameras, setting features, etc.
-3. Locations can generate evidence if they contain specific details (scratches on door, stains on floor, etc.)
-4. Maximum ONE piece of evidence per response
-5. Evidence should feel natural and connected to what was just discussed
-6. Can be either a REAL CLUE (points toward the killer) or RED HERRING (misleading)
-7. Must not duplicate existing evidence CATEGORIES - check the category list above
-8. Evidence must be realistic for this murder investigation
-9. When in doubt about duplicates, choose NO_EVIDENCE rather than risk creating similar evidence
-10. ONLY use character names from this case: ${suspectNames}, ${activeCase.victim} (victim)
-11. Do NOT invent new characters - stick to the established suspects from the database
-12. INSPECT commands should generate evidence ONLY if something specific or unique is discovered
-13. Evidence should be SIGNIFICANT - not trivial details like smells or general descriptions
-14. Prefer NO_EVIDENCE over weak or marginal evidence
-
-DESCRIPTION RULES:
-- Describe ONLY what is physically observed
-- NO interpretations, conclusions, or speculation
-- NO phrases like "likely murder weapon", "suspicious", "probably", "appears to be"
-- Use neutral, factual language
-- Focus on physical characteristics: size, color, condition, location
-
-GOOD EXAMPLES:
-- "A shattered vintage wine bottle found next to the victim's body"
-- "A torn piece of fabric caught on the cellar door handle"
-- "A smartphone with several missed calls on the screen"
-
-BAD EXAMPLES:
-- "A wine bottle that appears to be the murder weapon"
-- "Suspicious fabric that likely belongs to the killer"
-- "A phone with threatening messages (clearly evidence of blackmail)"
-
-RESPONSE FORMAT:
-If no evidence should be generated, respond with EXACTLY: NO_EVIDENCE
-
-If evidence should be generated, respond with ONLY valid JSON (no extra text):
+Analyze the response. If it contains an explicit physical object not in forbidden types, respond with ONLY valid JSON:
 {
   "shouldGenerate": true,
   "evidence": {
-    "id": "unique_evidence_id",
-    "name": "Evidence Name",
+    "id": "unique_id",
+    "name": "Object Name",
     "emoji": "📱",
-    "description": "Brief factual description with no interpretation"
+    "description": "Brief factual description under 10 words"
   }
 }
 
-IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extra text.`;
+If no valid evidence should be generated, respond with EXACTLY: NO_EVIDENCE`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',
-      max_tokens: 200,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      max_tokens: 150,
+      temperature: 0.3, // Lower temperature for more consistent decisions
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
     });
 
     const response = message.content[0].type === 'text' ? message.content[0].text : '';
     
-    console.log('🧩 EVIDENCE GENERATION DEBUG:');
-    console.log('- Player Question:', playerQuestion);
-    console.log('- Character Response:', characterResponse);
     console.log('- AI Decision:', response.trim());
     
     // Handle NO_EVIDENCE response
     if (response.trim() === 'NO_EVIDENCE') {
+      console.log('✅ No evidence to generate');
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
       });
     }
 
-    // Extract JSON from response (in case AI adds extra text)
-    let jsonString = response.trim();
-    
-    // Try to find JSON object boundaries
-    const jsonStart = jsonString.indexOf('{');
-    const jsonEnd = jsonString.lastIndexOf('}') + 1;
-    
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      jsonString = jsonString.substring(jsonStart, jsonEnd);
-    }
-    
-    // Try to parse JSON response
+    // Parse JSON response
     try {
+      // Extract JSON from response
+      let jsonString = response.trim();
+      const jsonStart = jsonString.indexOf('{');
+      const jsonEnd = jsonString.lastIndexOf('}') + 1;
+      
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        jsonString = jsonString.substring(jsonStart, jsonEnd);
+      }
+      
       const parsedResponse = JSON.parse(jsonString);
       
       if (parsedResponse.shouldGenerate && parsedResponse.evidence) {
-        // Validate evidence structure
         const evidence = parsedResponse.evidence;
+        
+        // Validate evidence structure
         if (evidence.id && evidence.name && evidence.emoji && evidence.description) {
-          
-          // Additional validation: check for duplicate categories
-          const phoneEmojis = ['📱', '📞', '☎️'];
-          const documentEmojis = ['📋', '📄', '📝', '📃', '📑'];
-          const fabricEmojis = ['👔', '🧵', '👗', '👚', '🧥'];
-          
-          // Check if this category already exists
-          for (const existing of existingEvidence) {
-            // Phone category check
-            if (phoneEmojis.includes(evidence.emoji) && phoneEmojis.includes(existing.emoji)) {
-              console.log('❌ Duplicate phone evidence blocked');
-              return NextResponse.json({ evidenceGenerated: false, evidence: null });
-            }
-            // Document category check
-            if (documentEmojis.includes(evidence.emoji) && documentEmojis.includes(existing.emoji)) {
-              console.log('❌ Duplicate document evidence blocked');
-              return NextResponse.json({ evidenceGenerated: false, evidence: null });
-            }
-            // Fabric category check
-            if (fabricEmojis.includes(evidence.emoji) && fabricEmojis.includes(existing.emoji)) {
-              console.log('❌ Duplicate fabric evidence blocked');
-              return NextResponse.json({ evidenceGenerated: false, evidence: null });
-            }
+          // Triple-check duplicates
+          if (existingEmojis.has(evidence.emoji)) {
+            console.log('❌ Duplicate emoji blocked:', evidence.emoji);
+            return NextResponse.json({ evidenceGenerated: false, evidence: null });
           }
           
-          console.log('✅ Evidence successfully generated:', evidence.name);
+          if (existingNames.has(evidence.name.toLowerCase())) {
+            console.log('❌ Duplicate name blocked:', evidence.name);
+            return NextResponse.json({ evidenceGenerated: false, evidence: null });
+          }
+          
+          const evidenceType = getEvidenceType(evidence.emoji);
+          if (existingTypes.has(evidenceType)) {
+            console.log('❌ Duplicate type blocked:', evidenceType);
+            return NextResponse.json({ evidenceGenerated: false, evidence: null });
+          }
+          
+          console.log('✅ Evidence generated:', evidence.name);
           return NextResponse.json({
             evidenceGenerated: true,
             evidence: evidence
@@ -260,7 +188,6 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
         }
       }
       
-      // Invalid structure
       console.log('❌ Invalid evidence structure');
       return NextResponse.json({
         evidenceGenerated: false,
@@ -268,8 +195,7 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
       });
       
     } catch (parseError) {
-      console.error('❌ Failed to parse AI evidence response:', parseError);
-      console.log('Raw response that failed to parse:', response);
+      console.error('❌ Failed to parse response:', parseError);
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
@@ -277,10 +203,36 @@ IMPORTANT: Respond with ONLY the JSON or "NO_EVIDENCE" - no explanations or extr
     }
 
   } catch (error) {
-    console.error('Evidence generation API error:', error);
+    console.error('❌ Evidence generation error:', error);
     return NextResponse.json({
       evidenceGenerated: false,
       evidence: null
     });
   }
+}
+
+// Helper function to determine evidence type from emoji
+function getEvidenceType(emoji: string): string {
+  const typeMap: Record<string, string[]> = {
+    'phone': ['📱', '📞', '☎️'],
+    'wine/bottle': ['🍷', '🍾', '🥂', '🍼'],
+    'clothing/fabric': ['👔', '🧵', '👗', '🧣', '🧥'],
+    'document/paper': ['📋', '📄', '📝', '💰'],
+    'key': ['🔑', '🗝️'],
+    'footwear': ['👟', '👠', '👞', '👢'],
+    'computer': ['💻', '🖥️'],
+    'blood': ['🩸', '🔴', '💧', '🩹'],
+    'camera': ['📷', '📹'],
+    'time/watch': ['⏰', '⌚'],
+    'fingerprints': ['👆', '🖐️', '✋', '🤚'],
+    'location/garden': ['🌿', '🏡', '🌳', '🌷']
+  };
+
+  for (const [type, emojis] of Object.entries(typeMap)) {
+    if (emojis.includes(emoji)) {
+      return type;
+    }
+  }
+  
+  return emoji; // Return emoji itself as type if not mapped
 }

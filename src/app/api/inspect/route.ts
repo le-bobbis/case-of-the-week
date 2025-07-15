@@ -3,7 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -14,7 +13,10 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 INSPECT REQUEST:');
     console.log('- Inspection:', inspection);
+    console.log('- Actions Remaining:', gameState.actionsRemaining);
+    console.log('- Evidence Count:', gameState.evidence?.length || 0);
 
+    // Validate input
     if (!inspection || !inspection.trim()) {
       return NextResponse.json({
         result: "You need to specify what you want to inspect.",
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get the active case with solution and suspects for context
+    // Get the active case with all details
     const activeCase = await prisma.case.findFirst({
       where: { isActive: true },
       include: {
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (!activeCase || !activeCase.solution) {
+    if (!activeCase) {
       return NextResponse.json({
         result: "Investigation area not available.",
         evidenceDiscovered: false,
@@ -40,76 +42,70 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Determine if we should bias toward killer (30% chance)
-    const shouldBiasTowardKiller = Math.random() < 0.3;
-    
-    console.log('🎯 Bias Decision:', shouldBiasTowardKiller ? 'KILLER BIAS' : 'NEUTRAL');
+    // Build investigation history context
+    const investigationHistory = gameState.inspectLog?.length > 0
+      ? gameState.inspectLog.map((log: any) => log.text).join('\n')
+      : 'No previous investigations.';
 
-    // Get killer information
-    const killer = activeCase.suspects.find(s => s.name === activeCase.solution!.killer);
-    const killerFirstName = killer ? killer.name.split(' ')[0] : '';
+    // Build evidence context
+    const evidenceContext = gameState.evidence?.length > 0
+      ? gameState.evidence.map((e: any) => `${e.emoji} ${e.name}: ${e.description}`).join('\n')
+      : 'No evidence discovered yet.';
 
-    // Create contextual guidance for the AI
-    const biasGuidance = shouldBiasTowardKiller 
-      ? `BIAS TOWARD KILLER (${killerFirstName}): Look for ways to subtly connect this inspection to evidence that points toward ${killerFirstName}, WITHOUT naming ${killerFirstName}. Focus on objects or details that could relate to their motive, method, or presence at the scene.`
-      : `NEUTRAL BIAS: Look for general scene details or objects that could be evidence. May point toward any suspect or be neutral/misleading.`;
+    // Create the simplified prompt
+    const prompt = `You are investigating "${activeCase.title}" murder mystery.
 
-    const prompt = `You are the game master for the murder mystery "${activeCase.title}". 
-${activeCase.victim} was found dead in ${activeCase.setting}, struck with ${activeCase.murderWeapon}.
-
-CASE CONTEXT:
-${activeCase.description}
-
-SOLUTION CONTEXT (for bias guidance only):
-- Killer: ${activeCase.solution.killer}
-- Method: ${activeCase.solution.murderMethod}
-- Motive: ${activeCase.solution.killerMotives}
-
-BIAS INSTRUCTION:
-${biasGuidance}
+CASE DETAILS:
+- Victim: ${activeCase.victim}
+- Location: ${activeCase.setting}
+- Murder Weapon: ${activeCase.murderWeapon}
+- Time: ${activeCase.murderTime}
+- Description: ${activeCase.description}
 
 SUSPECTS:
-${activeCase.suspects.map(s => `- ${s.name} (${s.title}): ${s.emoji}`).join('\n')}
+${activeCase.suspects.map(s => `- ${s.name} (${s.title})`).join('\n')}
+
+INVESTIGATION HISTORY:
+${investigationHistory}
+
+EVIDENCE DISCOVERED:
+${evidenceContext}
 
 The player wants to inspect: "${inspection}"
 
 INSTRUCTIONS:
-- Provide a brief description of what they find during their investigation
-- Keep responses to NO MORE THAN 1-3 FULL sentences. IMPORTANT: 20 words or fewer.
-- Be concise and descriptive
-- Do NOT include any actions, asterisks, or stage directions - just describe what is observed
-- Stay within the murder mystery setting described above
-- MENTION SPECIFIC OBJECTS when possible (bottles, phones, fabric, keys, etc.)
-- ${shouldBiasTowardKiller 
-    ? `Subtly favor descriptions that could lead to evidence pointing toward ${killerFirstName}` 
-    : 'Favor neutral observations or subtle misdirection toward other suspects'}
+1. Describe what is observed in simple, neutral language
+2. Maximum 25 words, in 1-3 COMPLETE sentences
+3. Be purely descriptive - no speculation or conclusions
+4. Stay consistent with previous observations
+5. Focus on physical details only
+6. Do not contradict any previous investigations OR suspect responses.
 
-Current game context: ${gameState.actionsRemaining} actions remaining, ${gameState.evidence?.length || 0} pieces of evidence found.
+Describe what you observe:`;
 
-Describe what the player observes when inspecting "${inspection}":`;
-
+    // Get AI response
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',
-      max_tokens: 120,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      max_tokens: 100,
+      temperature: 0.7,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
     });
 
-    const result = message.content[0].type === 'text' ? message.content[0].text : 'You examine the area carefully but find nothing particularly noteworthy.';
+    const result = message.content[0].type === 'text' 
+      ? message.content[0].text 
+      : 'You examine the area but find nothing noteworthy.';
     
     console.log('- Inspection Result:', result);
-    console.log('- Bias Applied:', shouldBiasTowardKiller ? 'Killer-focused' : 'Neutral');
 
-    // Call your existing evidence generation API
+    // Call evidence generation API
     let evidenceGenerated = false;
     let evidence = null;
 
     try {
-      console.log('🧩 CALLING EVIDENCE API...');
+      console.log('🧩 Checking for evidence generation...');
       
       const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
         method: 'POST',
@@ -117,7 +113,7 @@ Describe what the player observes when inspecting "${inspection}":`;
         body: JSON.stringify({
           playerQuestion: `Investigate ${inspection}`,
           characterResponse: result,
-          characterName: shouldBiasTowardKiller ? killerFirstName : 'Investigation',
+          characterName: 'Investigation',
           existingEvidence: gameState.evidence || [],
           conversationHistory: gameState.inspectLog || [],
           actionsRemaining: gameState.actionsRemaining,
@@ -125,41 +121,27 @@ Describe what the player observes when inspecting "${inspection}":`;
         })
       });
 
-      console.log('- Evidence API Status:', evidenceResponse.status);
-
       if (evidenceResponse.ok) {
         const evidenceData = await evidenceResponse.json();
-        console.log('- Evidence API Response:', evidenceData);
-        
         evidenceGenerated = evidenceData.evidenceGenerated;
         evidence = evidenceData.evidence;
         
-        console.log('- Evidence Generated:', evidenceGenerated);
-        console.log('- Evidence Object:', evidence);
-      } else {
-        console.error('Evidence API error:', evidenceResponse.status, await evidenceResponse.text());
+        console.log('✅ Evidence check complete:', evidenceGenerated ? 'Found evidence' : 'No evidence');
       }
-    } catch (evidenceError) {
-      console.error('❌ Evidence generation failed:', evidenceError);
+    } catch (error) {
+      console.error('❌ Evidence generation failed:', error);
     }
 
     return NextResponse.json({
       result,
       evidenceDiscovered: evidenceGenerated,
-      evidence: evidence,
-      // Optional: Include debug info in development
-      ...(process.env.NODE_ENV === 'development' && {
-        debug: {
-          biasApplied: shouldBiasTowardKiller ? 'killer' : 'neutral',
-          targetSuspect: shouldBiasTowardKiller ? killerFirstName : 'none'
-        }
-      })
+      evidence: evidence
     });
 
   } catch (error) {
-    console.error('Inspect API error:', error);
+    console.error('❌ Inspect API error:', error);
     return NextResponse.json({
-      result: "You examine the area carefully but find nothing particularly noteworthy.",
+      result: "Unable to inspect that area.",
       evidenceDiscovered: false,
       evidence: null
     });
