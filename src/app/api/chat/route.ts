@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid suspect' }, { status: 400 });
     }
 
-     // Build conversation history
+    // Build conversation history
     const conversationHistory = gameState.suspectsData?.[suspectId]?.chatLog?.length > 0
       ? gameState.suspectsData[suspectId].chatLog.map((msg: any) => msg.text).join('\n')
       : 'No previous conversation.';
@@ -53,12 +53,12 @@ export async function POST(request: NextRequest) {
       ? gameState.inspectLog.map((log: any) => log.text).join('\n')
       : 'No inspections conducted.';
 
-    // Format timeline for the prompt
-    const timelineContext = suspect.timeline && suspect.timeline.length > 0
-      ? suspect.timeline.map((event: any) => 
+    // Build timeline context
+    const timelineContext = suspect.timeline && Array.isArray(suspect.timeline) 
+      ? (suspect.timeline as any[]).map((event: any) => 
           `${event.time}: ${event.action} at ${event.location}${event.witnesses?.length > 0 ? ` (witnessed by: ${event.witnesses.join(', ')})` : ''}`
         ).join('\n')
-      : 'No timeline available.';
+      : 'No timeline available';
 
     const prompt = `You are ${suspect.name}, a ${suspect.title} in "${activeCase.title}".
 
@@ -101,8 +101,8 @@ STRICT RULES:
 6. Reference evidence/inspections naturally if relevant
 7. Protect your secrets unless directly confronted with proof
 8. If innocent, you genuinely don't know who did it
-9. NEVER contradict your timeline - if asked about your whereabouts, reference specific times and locations from your timeline
-10. If witnesses are mentioned in your timeline, acknowledge them appropriately
+9. NEVER contradict your timeline events
+10. Reference specific times from your timeline when asked about whereabouts
 
 Respond as ${suspect.name}:`;
 

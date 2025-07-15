@@ -68,14 +68,15 @@ SOURCE: ${characterName === 'Investigation' ? 'INSPECT function' : `${characterN
 EXISTING EVIDENCE: ${existingEvidenceList || 'None'}
 
 STRICT RULES:
-1. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
-2. Evidence description must be ONE SENTENCE, maximum 10 words
-3. Description must be purely factual - no interpretation or speculation
-4. Each piece of evidence must be meaningfully different
-5. Do NOT infer or imagine objects that weren't directly mentioned
-6. ONLY use character names from VALID CHARACTERS list - no new people
-7. Choose an emoji that best represents the object (be creative!)
-8. Inspect responses CAN generate evidence just like suspect responses
+1. Name the object or item explicitly, e.g. 'scarf' or 'wine bottle' or 'pipe wrench'
+2. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
+3. Evidence description must be ONE SENTENCE, maximum 10 words
+4. Description must be purely factual - no interpretation or speculation
+5. Each piece of evidence must be meaningfully different
+6. Do NOT infer or imagine objects that weren't directly mentioned
+7. ONLY use character names from VALID CHARACTERS list - no new people
+8. Choose an emoji that best represents the object (be creative!)
+9. Inspect responses CAN generate evidence just like suspect responses
 
 VALID EXAMPLES:
 - Suspect: "I dropped my phone near the door" → CREATE phone evidence

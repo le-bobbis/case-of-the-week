@@ -35,6 +35,7 @@ export async function GET() {
         emoji: suspect.emoji,
         title: suspect.title,
         bio: suspect.bio,
+        timeline: suspect.timeline, // Include timeline data
         chatLog: []
       };
       return acc;

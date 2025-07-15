@@ -52,15 +52,19 @@ export async function POST(request: NextRequest) {
       ? gameState.evidence.map((e: any) => `${e.emoji} ${e.name}: ${e.description}`).join('\n')
       : 'No evidence discovered yet.';
 
-    // Build timeline context - only observable events
-    const timelineContext = activeCase.suspects
-      .flatMap(suspect => 
-        (suspect.timeline || [])
-          .filter((event: any) => event.observable)
-          .map((event: any) => `${event.time} - ${suspect.name}: ${event.action} at ${event.location}`)
-      )
-      .sort() // Sort by time
-      .join('\n');
+    // Build timeline context for observable events
+    const timelineContext = activeCase.suspects.map(suspect => {
+      const timeline = suspect.timeline as any[];
+      if (!timeline || !Array.isArray(timeline)) return '';
+      
+      const observableEvents = timeline
+        .filter((event: any) => event.observable)
+        .map((event: any) => 
+          `- ${suspect.name} at ${event.time}: ${event.action} at ${event.location}`
+        ).join('\n');
+      
+      return observableEvents;
+    }).filter(Boolean).join('\n');
 
     // Create the simplified prompt
     const prompt = `You are investigating "${activeCase.title}" murder mystery.
@@ -76,7 +80,7 @@ SUSPECTS:
 ${activeCase.suspects.map(s => `- ${s.name} (${s.title})`).join('\n')}
 
 OBSERVABLE TIMELINE EVENTS:
-${timelineContext}
+${timelineContext || 'No observable events recorded'}
 
 INVESTIGATION HISTORY:
 ${investigationHistory}
@@ -93,7 +97,8 @@ INSTRUCTIONS:
 4. Stay consistent with previous observations
 5. Focus on physical details only
 6. Do not contradict any previous investigations OR suspect responses
-7. You may reference timeline events if relevant to the inspection
+7. Consider timeline events when relevant to the inspection
+8. Speak in third-person only; no use of "I" or "me"
 
 Describe what you observe:`;
 
