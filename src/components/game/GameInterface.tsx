@@ -193,7 +193,7 @@ const handleAskQuestion = async (question: string) => {
     }));
 
     try {
-      // Call our API
+      // Call our API for immediate response
       const response = await fetch('/api/inspect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +205,7 @@ const handleAskQuestion = async (question: string) => {
 
       const data = await response.json();
       
-      // Add AI result
+      // Add AI result immediately
       const resultMessage: ChatMessage = { type: 'suspect', text: `Result: ${data.result}` };
 
       setGameState(prev => ({
@@ -213,13 +213,18 @@ const handleAskQuestion = async (question: string) => {
         inspectLog: [...prev.inspectLog, resultMessage]
       }));
 
-      // Add evidence if discovered
-      if (data.evidenceDiscovered && data.evidence) {
-        setGameState(prev => ({
-          ...prev,
-          evidence: [...prev.evidence, data.evidence]
-        }));
-      }
+      // Check for evidence asynchronously
+      checkForEvidence({
+        playerQuestion: `Investigate ${inspection}`,
+        characterResponse: data.result,
+        characterName: 'Investigation',
+        existingEvidence: gameState.evidence || [],
+        conversationHistory: gameState.inspectLog
+          .map(msg => msg.text)
+          .slice(-10), // Last 10 exchanges
+        actionsRemaining: gameState.actionsRemaining,
+        evidenceCount: gameState.evidence?.length || 0
+      });
 
     } catch (error) {
       console.error('Error inspecting:', error);
@@ -234,6 +239,7 @@ const handleAskQuestion = async (question: string) => {
 
     useAction();
   };
+
 
   if (loading) {
     return (

@@ -2,6 +2,7 @@
 
 import { ChatMessage, Evidence } from '@/types/game';
 import Modal from '@/components/ui/Modal';
+import TypewriterText from '@/components/ui/TypewriterText';
 import { useState } from 'react';
 
 interface InspectModalProps {

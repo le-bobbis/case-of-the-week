@@ -333,6 +333,17 @@ body {
   color: #fff;
 }
 
+/* Typewriter effect */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.typewriter-text {
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.05em;
+}
+
 @media (max-width: 768px) {
   .game-title {
     font-size: 3rem;
