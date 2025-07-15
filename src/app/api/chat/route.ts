@@ -110,42 +110,11 @@ Respond as ${suspect.name}:`;
     
     console.log('- Character Response:', response);
 
-    // Call evidence generation API
-    let evidenceGenerated = false;
-    let evidence = null;
-
-    try {
-      console.log('🧩 Checking for evidence generation...');
-      
-      const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerQuestion: question,
-          characterResponse: response,
-          characterName: suspect.name,
-          existingEvidence: gameState.evidence || [],
-          conversationHistory: conversationHistory.split('\n').slice(-10), // Last 10 exchanges
-          actionsRemaining: gameState.actionsRemaining,
-          evidenceCount: gameState.evidence?.length || 0
-        })
-      });
-
-      if (evidenceResponse.ok) {
-        const evidenceData = await evidenceResponse.json();
-        evidenceGenerated = evidenceData.evidenceGenerated;
-        evidence = evidenceData.evidence;
-        
-        console.log('✅ Evidence check complete:', evidenceGenerated ? 'Found evidence' : 'No evidence');
-      }
-    } catch (error) {
-      console.error('❌ Evidence generation failed:', error);
-    }
-
+    // Return the response immediately
     return NextResponse.json({
       response,
-      evidenceDiscovered: evidenceGenerated,
-      evidence: evidence
+      evidenceDiscovered: false, // Will be handled by separate endpoint
+      evidence: null
     });
 
   } catch (error) {

@@ -100,42 +100,11 @@ Describe what you observe:`;
     
     console.log('- Inspection Result:', result);
 
-    // Call evidence generation API
-    let evidenceGenerated = false;
-    let evidence = null;
-
-    try {
-      console.log('🧩 Checking for evidence generation...');
-      
-      const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerQuestion: `Investigate ${inspection}`,
-          characterResponse: result,
-          characterName: 'Investigation',
-          existingEvidence: gameState.evidence || [],
-          conversationHistory: gameState.inspectLog || [],
-          actionsRemaining: gameState.actionsRemaining,
-          evidenceCount: gameState.evidence?.length || 0
-        })
-      });
-
-      if (evidenceResponse.ok) {
-        const evidenceData = await evidenceResponse.json();
-        evidenceGenerated = evidenceData.evidenceGenerated;
-        evidence = evidenceData.evidence;
-        
-        console.log('✅ Evidence check complete:', evidenceGenerated ? 'Found evidence' : 'No evidence');
-      }
-    } catch (error) {
-      console.error('❌ Evidence generation failed:', error);
-    }
-
+    // Return the result immediately
     return NextResponse.json({
       result,
-      evidenceDiscovered: evidenceGenerated,
-      evidence: evidence
+      evidenceDiscovered: false, // Will be handled by separate endpoint
+      evidence: null
     });
 
   } catch (error) {

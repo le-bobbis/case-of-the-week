@@ -1,17 +1,18 @@
 'use client';
 
-import { ChatMessage } from '@/types/game';
+import { ChatMessage, Evidence } from '@/types/game';
 import Modal from '@/components/ui/Modal';
 import { useState } from 'react';
 
 interface InspectModalProps {
   isOpen: boolean;
   inspectLog: ChatMessage[];
+  evidence: Evidence[];
   onClose: () => void;
   onInspect: (inspection: string) => void;
 }
 
-export default function InspectModal({ isOpen, inspectLog, onClose, onInspect }: InspectModalProps) {
+export default function InspectModal({ isOpen, inspectLog, evidence, onClose, onInspect }: InspectModalProps) {
   const [inspection, setInspection] = useState('');
 
   const handleSubmit = () => {
@@ -24,6 +25,25 @@ export default function InspectModal({ isOpen, inspectLog, onClose, onInspect }:
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit();
+    }
+  };
+
+  const handleEvidenceClick = (evidenceItem: Evidence) => {
+    console.log('Evidence clicked:', evidenceItem);
+    
+    // Safety check
+    if (!evidenceItem || !evidenceItem.description) {
+      console.error('Invalid evidence item:', evidenceItem);
+      return;
+    }
+    
+    const newValue = inspection + (inspection ? ' ' : '') + evidenceItem.description;
+    console.log('New value would be:', newValue);
+    
+    if (newValue.length <= 50) {
+      setInspection(newValue);
+    } else {
+      console.log('Text too long, not adding');
     }
   };
 
@@ -67,6 +87,52 @@ export default function InspectModal({ isOpen, inspectLog, onClose, onInspect }:
             </div>
           ))
         )}
+      </div>
+
+      {/* Evidence Display */}
+      <div style={{ margin: '20px 0' }}>
+        <div style={{ fontWeight: '600', color: '#ffffff', marginBottom: '12px', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Available Evidence</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', minHeight: '48px', alignItems: 'center' }}>
+          {evidence.length === 0 ? (
+            <div style={{ 
+              color: '#666', 
+              border: '2px dashed rgba(255, 255, 255, 0.1)', 
+              padding: '12px 20px', 
+              borderRadius: '8px',
+              fontSize: '0.875rem'
+            }}>
+              No evidence collected yet
+            </div>
+          ) : (
+            evidence.map((item, index) => (
+              <button
+                key={index}
+                style={{
+                  background: 'rgba(255, 107, 107, 0.1)',
+                  border: '1px solid rgba(255, 107, 107, 0.3)',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  color: '#fff'
+                }}
+                onClick={() => handleEvidenceClick(item)}
+                title={item.description}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                {item.emoji}
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Investigation Input */}

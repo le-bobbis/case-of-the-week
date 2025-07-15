@@ -74,12 +74,37 @@ export default function GameInterface() {
     }));
   };
 
+  const checkForEvidence = async (evidenceParams: any) => {
+  try {
+    const response = await fetch('/api/evidence/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(evidenceParams)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.evidenceGenerated && data.evidence) {
+        // Add evidence to game state
+        setGameState(prev => ({
+          ...prev,
+          evidence: [...prev.evidence, data.evidence]
+        }));
+        
+        console.log('✨ Evidence discovered:', data.evidence.name);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking for evidence:', error);
+  }
+};
+
   const openSuspectModal = (suspectId: string) => {
     setGameState(prev => ({ ...prev, currentSuspect: suspectId }));
     setShowSuspectModal(true);
   };
 
-  const handleAskQuestion = async (question: string) => {
+const handleAskQuestion = async (question: string) => {
     if (gameState.actionsRemaining <= 0) return;
 
     const suspect = suspectsData[gameState.currentSuspect];
@@ -96,7 +121,7 @@ export default function GameInterface() {
     }));
 
     try {
-      // Call our API
+      // Call our API for immediate response
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,7 +134,7 @@ export default function GameInterface() {
 
       const data = await response.json();
       
-      // Add AI response
+      // Add AI response immediately
       const suspectMessage: ChatMessage = { 
         type: 'suspect', 
         text: `${suspect.name}: ${data.response}` 
@@ -123,13 +148,18 @@ export default function GameInterface() {
         }
       }));
 
-      // Add evidence if discovered
-      if (data.evidenceDiscovered && data.evidence) {
-        setGameState(prev => ({
-          ...prev,
-          evidence: [...prev.evidence, data.evidence]
-        }));
-      }
+      // Check for evidence asynchronously
+      checkForEvidence({
+        playerQuestion: question,
+        characterResponse: data.response,
+        characterName: suspect.name,
+        existingEvidence: gameState.evidence || [],
+        conversationHistory: suspectsData[gameState.currentSuspect].chatLog
+          .map(msg => msg.text)
+          .slice(-10), // Last 10 exchanges
+        actionsRemaining: gameState.actionsRemaining,
+        evidenceCount: gameState.evidence?.length || 0
+      });
 
     } catch (error) {
       console.error('Error asking question:', error);
@@ -295,6 +325,7 @@ export default function GameInterface() {
       <InspectModal
         isOpen={showInspectModal}
         inspectLog={gameState.inspectLog}
+        evidence={gameState.evidence}  // Add this line
         onClose={() => setShowInspectModal(false)}
         onInspect={handleInspect}
       />
