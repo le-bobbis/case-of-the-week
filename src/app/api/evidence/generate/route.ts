@@ -16,16 +16,26 @@ export async function POST(request: NextRequest) {
       existingEvidence, 
       conversationHistory,
       actionsRemaining,
-      evidenceCount
+      evidenceCount,
+      caseId
     } = await request.json();
 
     console.log('🧩 EVIDENCE GENERATION REQUEST:');
+    console.log('- Case:', caseId);
     console.log('- Character Response:', characterResponse);
     console.log('- Evidence Count:', evidenceCount);
 
-    // Get the active case
-    const activeCase = await prisma.case.findFirst({
-      where: { isActive: true },
+    if (!caseId) {
+      console.error('❌ No case ID provided');
+      return NextResponse.json({
+        evidenceGenerated: false,
+        evidence: null
+      });
+    }
+
+    // Get the specific case
+    const activeCase = await prisma.case.findUnique({
+      where: { id: caseId },
       include: {
         solution: true,
         suspects: true
@@ -33,7 +43,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!activeCase || !activeCase.solution) {
-      console.error('❌ No active case found');
+      console.error('❌ Case not found');
       return NextResponse.json({
         evidenceGenerated: false,
         evidence: null
@@ -54,7 +64,7 @@ export async function POST(request: NextRequest) {
       return `${e.emoji} ${e.name}`;
     }).join(', ');
 
-        const prompt = `You are managing evidence for "${activeCase.title}" murder mystery.
+    const prompt = `You are managing evidence for "${activeCase.title}" murder mystery.
 
     CASE CONTEXT:
     - Victim: ${activeCase.victim}

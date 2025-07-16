@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body) // This will include caseId if present
     });
 
     if (evidenceResponse.ok) {

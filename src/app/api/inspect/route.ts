@@ -9,9 +9,10 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { inspection, gameState } = await request.json();
+    const { inspection, gameState, caseId } = await request.json();
 
     console.log('🔍 INSPECT REQUEST:');
+    console.log('- Case:', caseId);
     console.log('- Inspection:', inspection);
     console.log('- Actions Remaining:', gameState.actionsRemaining);
     console.log('- Evidence Count:', gameState.evidence?.length || 0);
@@ -25,9 +26,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get the active case with all details
-    const activeCase = await prisma.case.findFirst({
-      where: { isActive: true },
+    if (!caseId) {
+      return NextResponse.json({
+        result: "Investigation area not available.",
+        evidenceDiscovered: false,
+        evidence: null
+      });
+    }
+
+    // Get the specific case with all details
+    const activeCase = await prisma.case.findUnique({
+      where: { id: caseId },
       include: {
         solution: true,
         suspects: true

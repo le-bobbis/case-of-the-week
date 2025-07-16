@@ -9,16 +9,21 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { suspectId, question, gameState } = await request.json();
+    const { suspectId, question, gameState, caseId } = await request.json();
     
     console.log('💬 CHAT REQUEST:');
+    console.log('- Case:', caseId);
     console.log('- Suspect:', suspectId);
     console.log('- Question:', question);
     console.log('- Actions Remaining:', gameState.actionsRemaining);
     
-    // Get the active case with all details
-    const activeCase = await prisma.case.findFirst({
-      where: { isActive: true },
+    if (!caseId) {
+      return NextResponse.json({ error: 'Case ID is required' }, { status: 400 });
+    }
+
+    // Get the specific case with all details
+    const activeCase = await prisma.case.findUnique({
+      where: { id: caseId },
       include: {
         suspects: true,
         solution: true
@@ -26,7 +31,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!activeCase) {
-      return NextResponse.json({ error: 'No active case found' }, { status: 404 });
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 });
     }
 
     // Find the specific suspect

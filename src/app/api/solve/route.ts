@@ -11,11 +11,19 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { solution, gameState } = await request.json();
+    const { solution, gameState, caseId } = await request.json();
 
-    // Get the active case and its solution
-    const activeCase = await prisma.case.findFirst({
-      where: { isActive: true },
+    if (!caseId) {
+      return NextResponse.json({ 
+        evaluation: 'Case information not available.',
+        isCorrect: false,
+        correctAnswer: null
+      }, { status: 400 });
+    }
+
+    // Get the specific case and its solution
+    const activeCase = await prisma.case.findUnique({
+      where: { id: caseId },
       include: {
         solution: true
       }
