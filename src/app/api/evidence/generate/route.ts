@@ -54,59 +54,64 @@ export async function POST(request: NextRequest) {
       return `${e.emoji} ${e.name}`;
     }).join(', ');
 
-    const prompt = `You are managing evidence for "${activeCase.title}" murder mystery.
+        const prompt = `You are managing evidence for "${activeCase.title}" murder mystery.
 
-CASE CONTEXT:
-- Victim: ${activeCase.victim}
-- Weapon: ${activeCase.murderWeapon}
-- Killer: ${activeCase.solution.killer}
-- Valid Characters: ${activeCase.suspects.map(s => s.name).join(', ')}, ${activeCase.victim}
+    CASE CONTEXT:
+    - Victim: ${activeCase.victim}
+    - Weapon: ${activeCase.murderWeapon}
+    - Killer: ${activeCase.solution.killer}
+    - Valid Characters: ${activeCase.suspects.map(s => s.name).join(', ')}, ${activeCase.victim}
 
-RESPONSE TO ANALYZE: "${characterResponse}"
-SOURCE: ${characterName === 'Investigation' ? 'INSPECT function' : `${characterName} (suspect)`}
+    RESPONSE TO ANALYZE: "${characterResponse}"
+    SOURCE: ${characterName === 'Investigation' ? 'INSPECT function' : `${characterName} (suspect)`}
 
-EXISTING EVIDENCE: ${existingEvidenceList || 'None'}
+    EXISTING EVIDENCE: ${existingEvidenceList || 'None'}
 
-STRICT RULES:
-1. Name the object or item explicitly, e.g. 'scarf' or 'wine bottle' or 'pipe wrench'
-2. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
-3. Evidence description must be ONE SENTENCE, maximum 10 words
-4. Description must be purely factual - no interpretation or speculation
-5. Each piece of evidence must be meaningfully different
-6. Do NOT infer or imagine objects that weren't directly mentioned
-7. ONLY use character names from VALID CHARACTERS list - no new people
-8. Choose an emoji that best represents the object (be creative!)
-9. Inspect responses CAN generate evidence just like suspect responses
+    STRICT RULES:
+    1. Name the object or item explicitly, e.g. 'scarf' or 'wine bottle' or 'pipe wrench'
+    2. ONLY create evidence if a physical object was EXPLICITLY NAMED in the response
+    3. Evidence description must be ONE SENTENCE, maximum 10 words
+    4. Description must be purely factual - no interpretation or speculation
+    5. Each piece of evidence must be meaningfully different
+    6. Do NOT infer or imagine objects that weren't directly mentioned
+    7. ONLY use character names from VALID CHARACTERS list - no new people
+    8. Choose an emoji that best represents the object (be creative!)
+    9. Inspect responses CAN generate evidence just like suspect responses
+    10. NEVER generate evidence from actions, behaviors, or emotional states
+    11. The object must be something that could physically exist at a crime scene
 
-VALID EXAMPLES:
-- Suspect: "I dropped my phone near the door" → CREATE phone evidence
-- Inspect: "A broken wine bottle lies on the floor" → CREATE wine bottle evidence
-- Suspect: "I saw Elena's torn scarf" → CREATE scarf/fabric evidence (Elena is valid character)
-- Inspect: "Marcus's wallet sits on the table" → CREATE wallet evidence (Marcus is valid character)
+    VALID EXAMPLES:
+    - Suspect: "I dropped my phone near the door" → CREATE phone evidence
+    - Inspect: "A broken wine bottle lies on the floor" → CREATE wine bottle evidence
+    - Suspect: "I saw Elena's torn scarf" → CREATE scarf/fabric evidence (Elena is valid character)
+    - Inspect: "Marcus's wallet sits on the table" → CREATE wallet evidence (Marcus is valid character)
 
-INVALID EXAMPLES:
-- "I was nervous" → NO EVIDENCE (no object mentioned)
-- "The room was dark" → NO EVIDENCE (no specific object)
-- "Something fell" → NO EVIDENCE (object not specified)
-- "John's keys were there" → NO EVIDENCE (John not in valid characters)
+    INVALID EXAMPLES:
+    - "I was nervous" → NO EVIDENCE (emotion, not object)
+    - "*adjusts collar*" → NO EVIDENCE (action, not physical object)
+    - "The room was dark" → NO EVIDENCE (description, not object)
+    - "Something fell" → NO EVIDENCE (object not specified)
+    - "John's keys were there" → NO EVIDENCE (John not in valid characters)
+    - "I was focused on my photography" → NO EVIDENCE (activity, not explicit object)
 
-CRITICAL: 
-- Generate ONLY ONE piece of evidence per response
-- If multiple objects are mentioned, pick the FIRST valid one
-- Response must be COMPLETE JSON - no truncation
+    CRITICAL: 
+    - Generate ONLY ONE piece of evidence per response
+    - If multiple objects are mentioned, pick the FIRST valid one
+    - Response must be COMPLETE JSON - no truncation
+    - Physical objects only - no behaviors, actions, or states
 
-Analyze the response. If it contains an explicit physical object, respond with ONLY valid JSON:
-{
-  "shouldGenerate": true,
-  "evidence": {
-    "id": "unique_id",
-    "name": "Object Name",
-    "emoji": "📱",
-    "description": "Brief factual description under 10 words"
-  }
-}
+    Analyze the response. If it contains an explicit physical object, respond with ONLY valid JSON:
+    {
+      "shouldGenerate": true,
+      "evidence": {
+        "id": "unique_id",
+        "name": "Object Name",
+        "emoji": "📱",
+        "description": "Brief factual description under 10 words"
+      }
+    }
 
-If no valid evidence should be generated, respond with EXACTLY: NO_EVIDENCE`;
+    If no valid evidence should be generated, respond with EXACTLY: NO_EVIDENCE`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',
