@@ -6,10 +6,11 @@ import { useState } from 'react';
 interface SolutionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  gameState: any; // We'll pass the full game state for AI evaluation
+  gameState: any;
+  caseId: string;
 }
 
-export default function SolutionModal({ isOpen, onClose, gameState }: SolutionModalProps) {
+export default function SolutionModal({ isOpen, onClose, gameState, caseId }: SolutionModalProps) {
   const [solution, setSolution] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluation, setEvaluation] = useState<{
@@ -29,7 +30,8 @@ export default function SolutionModal({ isOpen, onClose, gameState }: SolutionMo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           solution: solution.trim(),
-          gameState
+          gameState,
+          caseId // Include caseId
         })
       });
 

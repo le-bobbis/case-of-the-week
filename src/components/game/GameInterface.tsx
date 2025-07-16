@@ -7,6 +7,7 @@ import SuspectModal from './SuspectModal';
 import InspectModal from './InspectModal';
 import SolutionModal from './SolutionModal';
 import EvidenceGrid from './EvidenceGrid';
+import CaseNavigation from './CaseNavigation';
 
 interface CaseInfo {
   id: string;
@@ -16,9 +17,20 @@ interface CaseInfo {
   victim: string;
   murderWeapon: string;
   murderTime: string;
+  navigation: {
+    prevCaseId: string | null;
+    nextCaseId: string | null;
+    currentIndex: number;
+    totalCases: number;
+  };
 }
 
-export default function GameInterface() {
+interface GameInterfaceProps {
+  caseId: string;
+  onCaseChange: (caseId: string) => void;
+}
+
+export default function GameInterface({ caseId, onCaseChange }: GameInterfaceProps) {
   const [gameState, setGameState] = useState<GameState>({
     actionsRemaining: 20,
     evidence: [],
@@ -35,20 +47,33 @@ export default function GameInterface() {
   const [showInspectModal, setShowInspectModal] = useState(false);
   const [showSolutionModal, setShowSolutionModal] = useState(false);
 
-  // Load case and suspects data on component mount
+  // Load case and suspects data when caseId changes
   useEffect(() => {
     const loadGameData = async () => {
+      if (!caseId) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      // Reset game state when switching cases
+      setGameState({
+        actionsRemaining: 20,
+        evidence: [],
+        currentSuspect: '',
+        inspectLog: []
+      });
+      
       try {
-        // Load current case
-        const caseResponse = await fetch('/api/case/current');
+        // Load specific case
+        const caseResponse = await fetch(`/api/case/${caseId}`);
         if (!caseResponse.ok) {
-          throw new Error('Failed to load current case');
+          throw new Error('Failed to load case');
         }
         const caseData = await caseResponse.json();
         setCurrentCase(caseData);
 
-        // Load suspects
-        const suspectsResponse = await fetch('/api/suspects');
+        // Load suspects for this case
+        const suspectsResponse = await fetch(`/api/suspects?caseId=${caseId}`);
         if (!suspectsResponse.ok) {
           throw new Error('Failed to load suspects');
         }
@@ -63,7 +88,7 @@ export default function GameInterface() {
     };
 
     loadGameData();
-  }, []);
+  }, [caseId]);
 
   const currentSuspect = gameState.currentSuspect ? suspectsData[gameState.currentSuspect] : null;
 
@@ -75,36 +100,39 @@ export default function GameInterface() {
   };
 
   const checkForEvidence = async (evidenceParams: any) => {
-  try {
-    const response = await fetch('/api/evidence/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(evidenceParams)
-    });
+    try {
+      const response = await fetch('/api/evidence/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...evidenceParams,
+          caseId // Include caseId in evidence check
+        })
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.evidenceGenerated && data.evidence) {
-        // Add evidence to game state
-        setGameState(prev => ({
-          ...prev,
-          evidence: [...prev.evidence, data.evidence]
-        }));
-        
-        console.log('✨ Evidence discovered:', data.evidence.name);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.evidenceGenerated && data.evidence) {
+          // Add evidence to game state
+          setGameState(prev => ({
+            ...prev,
+            evidence: [...prev.evidence, data.evidence]
+          }));
+          
+          console.log('✨ Evidence discovered:', data.evidence.name);
+        }
       }
+    } catch (error) {
+      console.error('Error checking for evidence:', error);
     }
-  } catch (error) {
-    console.error('Error checking for evidence:', error);
-  }
-};
+  };
 
   const openSuspectModal = (suspectId: string) => {
     setGameState(prev => ({ ...prev, currentSuspect: suspectId }));
     setShowSuspectModal(true);
   };
 
-const handleAskQuestion = async (question: string) => {
+  const handleAskQuestion = async (question: string) => {
     if (gameState.actionsRemaining <= 0) return;
 
     const suspect = suspectsData[gameState.currentSuspect];
@@ -128,7 +156,11 @@ const handleAskQuestion = async (question: string) => {
         body: JSON.stringify({
           suspectId: gameState.currentSuspect,
           question,
-          gameState
+          gameState: {
+            ...gameState,
+            suspectsData // Include suspects data for chat history
+          },
+          caseId // Include caseId
         })
       });
 
@@ -199,7 +231,8 @@ const handleAskQuestion = async (question: string) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           inspection,
-          gameState
+          gameState,
+          caseId // Include caseId
         })
       });
 
@@ -239,7 +272,6 @@ const handleAskQuestion = async (question: string) => {
 
     useAction();
   };
-
 
   if (loading) {
     return (
@@ -319,6 +351,15 @@ const handleAskQuestion = async (question: string) => {
         🔍 SOLVE THE CASE 🔍
       </div>
 
+      {/* Case Navigation */}
+      <CaseNavigation 
+        prevCaseId={currentCase.navigation.prevCaseId}
+        nextCaseId={currentCase.navigation.nextCaseId}
+        currentIndex={currentCase.navigation.currentIndex}
+        totalCases={currentCase.navigation.totalCases}
+        onNavigate={onCaseChange}
+      />
+
       {/* Modals */}
       <SuspectModal
         suspect={currentSuspect}
@@ -331,7 +372,7 @@ const handleAskQuestion = async (question: string) => {
       <InspectModal
         isOpen={showInspectModal}
         inspectLog={gameState.inspectLog}
-        evidence={gameState.evidence}  // Add this line
+        evidence={gameState.evidence}
         onClose={() => setShowInspectModal(false)}
         onInspect={handleInspect}
       />
@@ -340,6 +381,7 @@ const handleAskQuestion = async (question: string) => {
         isOpen={showSolutionModal}
         onClose={() => setShowSolutionModal(false)}
         gameState={gameState}
+        caseId={caseId}
       />
     </div>
   );

@@ -6,11 +6,14 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await the params in Next.js 15
+    const { id } = await params;
+    
     const caseData = await prisma.case.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         title: true,
@@ -33,7 +36,7 @@ export async function GET(
       select: { id: true }
     });
 
-    const currentIndex = allCases.findIndex(c => c.id === params.id);
+    const currentIndex = allCases.findIndex(c => c.id === id);
     const prevCaseId = currentIndex < allCases.length - 1 ? allCases[currentIndex + 1].id : null;
     const nextCaseId = currentIndex > 0 ? allCases[currentIndex - 1].id : null;
 
