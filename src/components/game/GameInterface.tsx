@@ -50,7 +50,14 @@ export default function GameInterface({ caseId, onCaseChange }: GameInterfacePro
   // Load case and suspects data when caseId changes
   useEffect(() => {
     const loadGameData = async () => {
-      if (!caseId) return;
+      console.log('🎮 GameInterface - Loading data for caseId:', caseId);
+      
+      if (!caseId) {
+        console.error('❌ No caseId provided to GameInterface');
+        setError('No case selected');
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       setError(null);
@@ -65,22 +72,35 @@ export default function GameInterface({ caseId, onCaseChange }: GameInterfacePro
       
       try {
         // Load specific case
+        console.log('📡 Fetching case from:', `/api/case/${caseId}`);
         const caseResponse = await fetch(`/api/case/${caseId}`);
+        
         if (!caseResponse.ok) {
-          throw new Error('Failed to load case');
+          const errorData = await caseResponse.text();
+          console.error('❌ Case fetch failed:', caseResponse.status, errorData);
+          throw new Error(`Failed to load case: ${caseResponse.status}`);
         }
+        
         const caseData = await caseResponse.json();
+        console.log('✅ Case loaded:', caseData.title);
         setCurrentCase(caseData);
 
         // Load suspects for this case
+        console.log('📡 Fetching suspects from:', `/api/suspects?caseId=${caseId}`);
         const suspectsResponse = await fetch(`/api/suspects?caseId=${caseId}`);
+        
         if (!suspectsResponse.ok) {
-          throw new Error('Failed to load suspects');
+          const errorData = await suspectsResponse.text();
+          console.error('❌ Suspects fetch failed:', suspectsResponse.status, errorData);
+          throw new Error(`Failed to load suspects: ${suspectsResponse.status}`);
         }
+        
         const suspectsData = await suspectsResponse.json();
+        console.log('✅ Suspects loaded:', Object.keys(suspectsData));
         setSuspectsData(suspectsData);
 
       } catch (err) {
+        console.error('❌ Error in loadGameData:', err);
         setError(err instanceof Error ? err.message : 'Failed to load game data');
       } finally {
         setLoading(false);
@@ -90,6 +110,7 @@ export default function GameInterface({ caseId, onCaseChange }: GameInterfacePro
     loadGameData();
   }, [caseId]);
 
+  // Rest of the component remains the same...
   const currentSuspect = gameState.currentSuspect ? suspectsData[gameState.currentSuspect] : null;
 
   const useAction = () => {
