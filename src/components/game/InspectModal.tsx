@@ -138,7 +138,7 @@ export default function InspectModal({ isOpen, inspectLog, evidence, onClose, on
 
       {/* Investigation Input */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <span style={{ fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', fontSize: '0.95rem' }}>Investigate...</span>
+        <span style={{ fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', fontSize: '0.95rem' }}></span>
         <input
           type="text"
           value={inspection}

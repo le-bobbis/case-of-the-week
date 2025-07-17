@@ -34,10 +34,11 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
       return;
     }
     
+    
     const newValue = question + (question ? ' ' : '') + evidenceItem.name;
     console.log('New value would be:', newValue);
     
-    if (newValue.length <= 100) {
+    if (newValue.length <= 50) {
       setQuestion(newValue);
     } else {
       console.log('Text too long, not adding');
@@ -157,7 +158,7 @@ export default function SuspectModal({ suspect, evidence, isOpen, onClose, onAsk
           onChange={(e) => setQuestion(e.target.value)}
           onKeyPress={handleKeyPress}
           maxLength={100}
-          placeholder="Ask a question..."
+          placeholder="What do you want to ask? (50 chars max)"
           style={{
             width: '100%',
             padding: '14px 18px',

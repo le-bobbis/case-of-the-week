@@ -7,7 +7,7 @@ interface EvidenceGridProps {
 export default function EvidenceGrid({ evidence }: EvidenceGridProps) {
   return (
     <div className="evidence-section">
-      <h2 className="section-title">Evidence</h2>
+      <h2 className="section-title">Review Evidence</h2>
       <div className="evidence-grid">
         {Array.from({ length: 20 }, (_, index) => {
           const evidenceItem = evidence[index];

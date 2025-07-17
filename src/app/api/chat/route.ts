@@ -48,9 +48,32 @@ export async function POST(request: NextRequest) {
       ? gameState.suspectsData[suspectId].chatLog.map((msg: any) => msg.text).join('\n')
       : 'No previous conversation.';
 
-    // Build evidence context
+    // Analyze conversation history for evidence mentions
+    const conversationText = conversationHistory.toLowerCase();
+    const currentQuestionLower = question.toLowerCase();
+    
+    // Track which evidence has been brought up in conversation
+    const evidenceMenutionedInConversation = gameState.evidence?.filter((e: any) => {
+      const emojiMentioned = conversationText.includes(e.emoji) || currentQuestionLower.includes(e.emoji);
+      const nameMentioned = conversationText.includes(e.name.toLowerCase()) || currentQuestionLower.includes(e.name.toLowerCase());
+      const descriptionTerms = e.description.toLowerCase().split(' ').filter((word: string) => word.length > 4);
+      const descriptionMentioned = descriptionTerms.some((term: string) => 
+        conversationText.includes(term) || currentQuestionLower.includes(term)
+      );
+      return emojiMentioned || nameMentioned || descriptionMentioned;
+    }) || [];
+
+    // Count how many times evidence has been brought up against them
+    const evidencePressureCount = evidenceMenutionedInConversation.length;
+    const isKillerUnderPressure = suspect.isKiller && evidencePressureCount >= 2;
+    const hasSecretEvidence = evidencePressureCount >= 1;
+
+    // Build evidence context with emphasis on what's being asked about
     const evidenceContext = gameState.evidence?.length > 0
-      ? gameState.evidence.map((e: any) => `${e.emoji} ${e.name}: ${e.description}`).join('\n')
+      ? gameState.evidence.map((e: any) => {
+          const hasBeenMentioned = evidenceMenutionedInConversation.some((mentioned: any) => mentioned.id === e.id);
+          return `${e.emoji} ${e.name}: ${e.description}${hasBeenMentioned ? ' [PREVIOUSLY DISCUSSED]' : ''}`;
+        }).join('\n')
       : 'No evidence discovered yet.';
 
     // Build inspection history
@@ -95,19 +118,58 @@ ${inspectionHistory}
 CONVERSATION HISTORY:
 ${conversationHistory}
 
+CUMULATIVE PRESSURE:
+- Evidence pieces mentioned against you so far: ${evidencePressureCount}
+- Evidence discussed: ${evidenceMenutionedInConversation.map((e: any) => e.emoji).join(', ') || 'None'}
+${suspect.isKiller ? `- Murder confession threshold: ${isKillerUnderPressure ? 'REACHED - The weight of evidence is overwhelming' : `Not yet (${evidencePressureCount}/2 pieces)`}` : ''}
+${hasSecretEvidence ? '- Secret-related evidence has been brought up' : ''}
+
 The player asks: "${question}"
 
 STRICT RULES:
 1. Stay completely in character as ${suspect.name}
-2. Maximum 25 words, in 1-3 COMPLETE sentences
-3. Use only direct speech - no actions, no *descriptions*
+2. Use only dialogue - no actions, mannerisms, or descriptions. DO NOT REPLY  IN *ASTERISKS*
+3. Maximum 25 words, in 1-3 COMPLETE sentences
 4. Be consistent with all evidence, inspections, and previous statements
 5. Don't contradict established facts or your previous answers
-6. Reference evidence/inspections naturally if relevant
-7. Protect your secrets unless directly confronted with proof
-8. If innocent, you genuinely don't know who did it
-9. NEVER contradict your timeline events
-10. Reference specific times from your timeline when asked about whereabouts
+6. Don't repeat previous statements word-for-word. Prioritize unique statements over repitition. 
+7. Reference evidence/inspections naturally if relevant
+8. Protect your secrets unless directly confronted with proof
+9. If innocent, you genuinely don't know who did it
+10. NEVER contradict your timeline events
+11. Reference specific times from your timeline when asked about whereabouts
+
+CONFESSION GUIDELINES:
+12. If the player directly confronts you with specific evidence that clearly proves your secret, you should nervously confess to that secret
+13. ${suspect.isKiller ? `If confronted with multiple pieces of evidence that clearly prove you killed ${activeCase.victim}, break down and confess to the murder` : 'Never confess to the murder - you didn\'t do it'}
+14. Look for questions that reference specific evidence by name, emoji, or description
+15. Confessions should feel natural and emotional - show the pressure getting to you
+16. Once you've confessed to something, be more honest about that specific topic going forward
+17. Before confessing, show increasing nervousness if evidence is mounting against you
+18. CUMULATIVE PRESSURE: Consider ALL evidence brought up across the entire conversation, not just the current question
+19. ${suspect.isKiller ? 'As more evidence accumulates against you (2+ pieces), your composure should gradually break down' : 'Show anxiety when evidence relates to your secret, but maintain innocence about the murder'}
+
+EVIDENCE AWARENESS:
+When the player mentions evidence (by emoji, name, or description), consider:
+- Does this evidence directly implicate you in your secret or the murder?
+- Are they connecting multiple pieces of evidence against you?
+- Is the pressure of their questioning with proof becoming unbearable?
+- Would a real person crack under this specific line of questioning?
+- How many different pieces of evidence have they confronted you with so far?
+
+CUMULATIVE CONFESSION TRIGGERS:
+- Each new piece of evidence adds to the pressure from previous questions
+- You remember what evidence has already been discussed
+- ${suspect.isKiller ? 'After 2+ different evidence pieces have been raised against you, strongly consider confessing' : 'If evidence proving your secret has been raised, consider confessing to the secret (but never the murder)'}
+- Show gradual breakdown: confident → defensive → nervous → desperate → confession
+
+Examples of confession triggers:
+- Being shown evidence that directly contradicts your alibi
+- Multiple pieces of evidence that create an undeniable pattern
+- Evidence that only you could have left behind
+- Being caught in a clear lie with proof
+
+Remember: Confessions should feel earned through clever questioning and evidence, not given away easily.
 
 Respond as ${suspect.name}:`;
 

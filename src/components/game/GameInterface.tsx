@@ -367,9 +367,16 @@ export default function GameInterface({ caseId, onCaseChange }: GameInterfacePro
       {/* Evidence Grid */}
       <EvidenceGrid evidence={gameState.evidence} />
 
-      {/* Solve Case Banner */}
-      <div className="solve-banner" onClick={() => setShowSolutionModal(true)}>
-        🔍 SOLVE THE CASE 🔍
+      {/* Solve Case Section - Updated to match Investigate button */}
+      <div className="investigate-section">
+        <div className="investigate-header">
+        </div>
+        <div className="investigate-button-container">
+          <button className="investigate-main-btn solve-button" onClick={() => setShowSolutionModal(true)}>
+            <span className="investigate-icon">🎯</span>
+            <span className="investigate-label">Solve the Case</span>
+          </button>
+        </div>
       </div>
 
       {/* Case Navigation */}
