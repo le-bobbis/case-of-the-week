@@ -1,7 +1,8 @@
 'use client';
 
 import Modal from '@/components/ui/Modal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Suspect } from '@/types/game';
 
 interface SolutionModalProps {
   isOpen: boolean;
@@ -11,35 +12,53 @@ interface SolutionModalProps {
 }
 
 export default function SolutionModal({ isOpen, onClose, gameState, caseId }: SolutionModalProps) {
-  const [solution, setSolution] = useState('');
+  const [selectedSuspect, setSelectedSuspect] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [suspects, setSuspects] = useState<Record<string, Suspect>>({});
   const [evaluation, setEvaluation] = useState<{
     feedback: string;
     isCorrect: boolean;
-    correctAnswer?: string;
+    suspectName?: string;
   } | null>(null);
 
+  // Load suspects when modal opens
+  useEffect(() => {
+    const loadSuspects = async () => {
+      if (isOpen && caseId) {
+        try {
+          const response = await fetch(`/api/suspects?caseId=${caseId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setSuspects(data);
+          }
+        } catch (error) {
+          console.error('Failed to load suspects:', error);
+        }
+      }
+    };
+    loadSuspects();
+  }, [isOpen, caseId]);
+
   const handleSubmit = async () => {
-    if (!solution.trim() || isSubmitting) return;
+    if (!selectedSuspect || isSubmitting) return;
     
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/solve', {
+      const response = await fetch('/api/solve-simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          solution: solution.trim(),
-          gameState,
-          caseId // Include caseId
+          suspectId: selectedSuspect,
+          caseId
         })
       });
 
       const data = await response.json();
       setEvaluation({
-        feedback: data.evaluation,
+        feedback: data.feedback,
         isCorrect: data.isCorrect,
-        correctAnswer: data.correctAnswer
+        suspectName: data.suspectName
       });
       
     } catch (error) {
@@ -54,137 +73,137 @@ export default function SolutionModal({ isOpen, onClose, gameState, caseId }: So
   };
 
   const handleClose = () => {
-    setSolution('');
+    setSelectedSuspect('');
     setEvaluation(null);
     onClose();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isSubmitting) {
-      handleSubmit();
-    }
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <h2 style={{ fontSize: '2em', fontWeight: 'bold', color: '#d4af37', marginBottom: '20px', textAlign: 'center' }}>
-        🔍 Solve the Case
+      <h2 style={{ fontSize: '2rem', fontWeight: '600', color: '#ffffff', marginBottom: '24px', textAlign: 'center' }}>
+        🔍 Who is the Killer?
       </h2>
       
       {!evaluation ? (
         <>
-          <p style={{ marginBottom: '20px', color: '#d4af37', textAlign: 'center' }}>
-            Who do you think committed the murder? Enter the name of the killer and explain your reasoning.
+          <p style={{ marginBottom: '24px', color: '#b0b0b0', textAlign: 'center' }}>
+            Select the suspect you believe committed the murder.
           </p>
 
-          <textarea
-            value={solution}
-            onChange={(e) => setSolution(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Enter your solution... Who is the killer and why?"
-            disabled={isSubmitting}
+          {/* Suspect Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '16px',
+            marginBottom: '32px'
+          }}>
+            {Object.values(suspects).map((suspect) => (
+              <button
+                key={suspect.id}
+                onClick={() => setSelectedSuspect(suspect.id)}
+                style={{
+                  background: selectedSuspect === suspect.id 
+                    ? 'rgba(255, 107, 107, 0.2)' 
+                    : 'rgba(255, 255, 255, 0.03)',
+                  border: selectedSuspect === suspect.id 
+                    ? '2px solid rgba(255, 107, 107, 0.6)' 
+                    : '2px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedSuspect !== suspect.id) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 107, 107, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedSuspect !== suspect.id) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  }
+                }}
+              >
+                <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{suspect.emoji}</div>
+                <div style={{ color: '#ffffff', fontWeight: '600', fontSize: '0.875rem' }}>
+                  {suspect.name}
+                </div>
+                <div style={{ color: '#666', fontSize: '0.75rem', marginTop: '4px' }}>
+                  {suspect.title}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Submit Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={!selectedSuspect || isSubmitting}
             style={{
               width: '100%',
-              height: '120px',
-              padding: '15px',
-              border: '2px solid #d4af37',
-              borderRadius: '10px',
-              background: 'rgba(139, 69, 19, 0.2)',
+              padding: '16px',
+              border: 'none',
+              borderRadius: '8px',
+              background: (!selectedSuspect || isSubmitting) 
+                ? '#333' 
+                : 'linear-gradient(135deg, #ff6b6b 0%, #f06595 100%)',
               color: 'white',
-              fontSize: '1em',
-              marginBottom: '20px',
-              resize: 'vertical',
-              fontFamily: 'inherit'
+              cursor: (!selectedSuspect || isSubmitting) ? 'not-allowed' : 'pointer',
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              opacity: (!selectedSuspect || isSubmitting) ? 0.5 : 1
             }}
-          />
-
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-            <button
-              onClick={handleSubmit}
-              disabled={!solution.trim() || isSubmitting}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '8px',
-                background: isSubmitting ? '#666' : 'linear-gradient(45deg, #8b0000, #a52a2a)',
-                color: 'white',
-                cursor: (!solution.trim() || isSubmitting) ? 'not-allowed' : 'pointer',
-                opacity: (!solution.trim() || isSubmitting) ? 0.5 : 1,
-                fontSize: '1em'
-              }}
-            >
-              {isSubmitting ? 'Evaluating...' : 'Submit Solution'}
-            </button>
-            <button
-              onClick={handleClose}
-              disabled={isSubmitting}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '8px',
-                background: 'linear-gradient(45deg, #4682b4, #5f9ea0)',
-                color: 'white',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1,
-                fontSize: '1em'
-              }}
-            >
-              Return
-            </button>
-          </div>
+          >
+            {isSubmitting ? 'Checking...' : 'Confirm Accusation'}
+          </button>
         </>
       ) : (
         <>
-          {/* AI Evaluation Results */}
+          {/* Results */}
           <div style={{
-            background: evaluation.isCorrect ? 'rgba(0, 100, 0, 0.2)' : 'rgba(139, 69, 19, 0.2)',
-            border: `2px solid ${evaluation.isCorrect ? '#228b22' : '#d4af37'}`,
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '20px'
+            background: evaluation.isCorrect 
+              ? 'rgba(34, 197, 94, 0.1)' 
+              : 'rgba(239, 68, 68, 0.1)',
+            border: `2px solid ${evaluation.isCorrect ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`,
+            borderRadius: '12px',
+            padding: '32px',
+            marginBottom: '24px',
+            textAlign: 'center'
           }}>
             <h3 style={{ 
-              color: evaluation.isCorrect ? '#90EE90' : '#d4af37', 
-              marginBottom: '15px',
-              textAlign: 'center',
-              fontSize: '1.5em'
+              fontSize: '2rem',
+              marginBottom: '16px'
             }}>
-              {evaluation.isCorrect ? '🎉 Correct!' : '🤔 Not Quite...'}
+              {evaluation.isCorrect ? '🎉' : '❌'}
             </h3>
             
             <p style={{ 
-              color: 'white', 
-              lineHeight: '1.6',
-              marginBottom: evaluation.correctAnswer ? '15px' : '0'
+              color: '#ffffff', 
+              fontSize: '1.125rem',
+              lineHeight: '1.6'
             }}>
               {evaluation.feedback}
             </p>
-
-            {evaluation.correctAnswer && (
-              <div style={{
-                background: 'rgba(0,0,0,0.3)',
-                padding: '15px',
-                borderRadius: '8px',
-                marginTop: '15px'
-              }}>
-                <h4 style={{ color: '#d4af37', marginBottom: '10px' }}>The Solution:</h4>
-                <p style={{ color: '#f4f1e8' }}>{evaluation.correctAnswer}</p>
-              </div>
-            )}
           </div>
 
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             {!evaluation.isCorrect && (
               <button
                 onClick={() => setEvaluation(null)}
                 style={{
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   border: 'none',
                   borderRadius: '8px',
-                  background: 'linear-gradient(45deg, #8b0000, #a52a2a)',
+                  background: 'linear-gradient(135deg, #ff6b6b 0%, #f06595 100%)',
                   color: 'white',
                   cursor: 'pointer',
-                  fontSize: '1em'
+                  fontSize: '1rem',
+                  fontWeight: '600'
                 }}
               >
                 Try Again
@@ -193,16 +212,17 @@ export default function SolutionModal({ isOpen, onClose, gameState, caseId }: So
             <button
               onClick={handleClose}
               style={{
-                padding: '10px 20px',
-                border: 'none',
+                padding: '12px 24px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
-                background: 'linear-gradient(45deg, #4682b4, #5f9ea0)',
+                background: 'transparent',
                 color: 'white',
                 cursor: 'pointer',
-                fontSize: '1em'
+                fontSize: '1rem',
+                fontWeight: '600'
               }}
             >
-              {evaluation.isCorrect ? 'Close' : 'Return'}
+              Close
             </button>
           </div>
         </>

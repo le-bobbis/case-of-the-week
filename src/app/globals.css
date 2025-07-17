@@ -118,8 +118,8 @@ body {
 }
 
 .actions-banner {
-  background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
-  border-color: rgba(255, 107, 107, 0.3);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border: 1px solid rgba(255, 107, 107, 0.3);
   color: white;
   padding: 24px;
   margin: 32px 0;
