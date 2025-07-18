@@ -326,7 +326,7 @@ export default function GameInterface({ caseId, onCaseChange }: GameInterfacePro
         >
           {isCaseCollapsed ? '▼' : '▲'}
         </button>
-        <h2 className="case-title">{currentCase.title}</h2>
+        <h2 className="case-title">🗂️ {currentCase.title}</h2>
         <div className="case-description">
           {currentCase.description}
         </div>

@@ -75,7 +75,7 @@ export default function LandingPage({ onStartGame }: LandingPageProps) {
       <h1 className="game-title">Case of the Week</h1>
       
       <div className="case-file">
-        <h2 className="case-title">{selectedCase.title}</h2>
+        <h2 className="case-title">🗂️ {selectedCase.title}</h2>
         <div className="case-description">
           {selectedCase.description}
         </div>
