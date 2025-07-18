@@ -1,21 +1,12 @@
-// src/app/api/suspects/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Get caseId from query params
-    const searchParams = request.nextUrl.searchParams;
-    const caseId = searchParams.get('caseId');
-
-    if (!caseId) {
-      return NextResponse.json({ error: 'Case ID is required' }, { status: 400 });
-    }
-
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId },
+    const activeCase = await prisma.case.findFirst({
+      where: { isActive: true },
       include: {
         suspects: {
           select: {
@@ -23,19 +14,18 @@ export async function GET(request: NextRequest) {
             name: true,
             emoji: true,
             title: true,
-            bio: true,
-            timeline: true
+            bio: true
           }
         }
       }
     });
 
-    if (!caseData) {
-      return NextResponse.json({ error: 'Case not found' }, { status: 404 });
+    if (!activeCase) {
+      return NextResponse.json({ error: 'No active case found' }, { status: 404 });
     }
 
     // Transform suspects to match frontend format
-    const suspectsData = caseData.suspects.reduce((acc, suspect) => {
+    const suspectsData = activeCase.suspects.reduce((acc, suspect) => {
       // Create a lowercase key for the suspect (used in frontend)
       const key = suspect.name.toLowerCase().split(' ')[0];
       acc[key] = {
@@ -44,7 +34,6 @@ export async function GET(request: NextRequest) {
         emoji: suspect.emoji,
         title: suspect.title,
         bio: suspect.bio,
-        timeline: suspect.timeline,
         chatLog: []
       };
       return acc;

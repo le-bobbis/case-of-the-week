@@ -1,16 +1,17 @@
 import { Evidence } from '@/types/game';
 
-export const evidencePool = [
-  { emoji: '🍷', description: 'Wine bottle with fingerprints' },
-  { emoji: '🧤', description: 'Leather gloves found nearby' },
-  { emoji: '📱', description: 'Phone with suspicious messages' },
-  { emoji: '🔑', description: 'Key to the wine cellar' },
-  { emoji: '👔', description: 'Torn piece of clothing' },
-  { emoji: '💄', description: 'Lipstick mark on glass' },
-  { emoji: '⌚', description: 'Expensive watch' },
-  { emoji: '📷', description: 'Security camera footage' },
-  { emoji: '🩸', description: 'Blood traces on the floor' },
-  { emoji: '👟', description: 'Muddy footprints' }
+
+export const evidencePool: Evidence[] = [
+  { id: 'wine_bottle', name: 'Wine Bottle', emoji: '🍷', description: 'Wine bottle with fingerprints' },
+  { id: 'leather_gloves', name: 'Leather Gloves', emoji: '🧤', description: 'Leather gloves found nearby' },
+  { id: 'phone_messages', name: 'Phone Messages', emoji: '📱', description: 'Phone with suspicious messages' },
+  { id: 'cellar_key', name: 'Cellar Key', emoji: '🔑', description: 'Key to the wine cellar' },
+  { id: 'torn_fabric', name: 'Torn Fabric', emoji: '👔', description: 'Torn piece of clothing' },
+  { id: 'lipstick_mark', name: 'Lipstick Mark', emoji: '💄', description: 'Lipstick mark on glass' },
+  { id: 'expensive_watch', name: 'Expensive Watch', emoji: '⌚', description: 'Expensive watch' },
+  { id: 'security_footage', name: 'Security Footage', emoji: '📷', description: 'Security camera footage' },
+  { id: 'blood_traces', name: 'Blood Traces', emoji: '🩸', description: 'Blood traces on the floor' },
+  { id: 'muddy_footprints', name: 'Muddy Footprints', emoji: '👟', description: 'Muddy footprints' }
 ];
 
 export function getRandomEvidence(): Evidence {
