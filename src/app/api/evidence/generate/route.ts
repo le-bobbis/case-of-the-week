@@ -164,7 +164,10 @@ export async function POST(request: NextRequest) {
         if (evidence.id && evidence.name && evidence.emoji && evidence.description) {
           // Validate uniqueness using AI
           try {
-            const validationResponse = await fetch('http://localhost:3000/api/evidence/validate', {
+            // Build the validation URL from the current request so the
+            // function works in both local and deployed environments
+            const validationUrl = new URL('/api/evidence/validate', request.url);
+            const validationResponse = await fetch(validationUrl.href, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

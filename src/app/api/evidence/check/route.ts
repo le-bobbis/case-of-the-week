@@ -4,8 +4,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Forward the request to the evidence generation endpoint
-    const evidenceResponse = await fetch('http://localhost:3000/api/evidence/generate', {
+    // Construct the URL based on the incoming request so it works in
+    // both local and deployed environments
+    const evidenceUrl = new URL('/api/evidence/generate', request.url);
+    const evidenceResponse = await fetch(evidenceUrl.href, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body) // This will include caseId if present
