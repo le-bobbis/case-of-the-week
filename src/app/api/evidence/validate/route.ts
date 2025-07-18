@@ -1,24 +1,30 @@
 // src/app/api/evidence/validate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { Evidence } from '@/types/game';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface EvidenceValidationRequest {
+  proposedEvidence: Evidence;
+  existingEvidence: Evidence[];
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { 
+    const {
       proposedEvidence,
       existingEvidence
-    } = await request.json();
+    } = await request.json() as EvidenceValidationRequest;
 
     console.log('🔍 EVIDENCE UNIQUENESS CHECK:');
     console.log('- Proposed:', proposedEvidence);
     console.log('- Existing Count:', existingEvidence.length);
 
     // Build existing evidence context
-    const existingEvidenceList = existingEvidence.map((e: any) => 
+    const existingEvidenceList = existingEvidence.map((e: Evidence) =>
       `${e.emoji} ${e.name}: ${e.description}`
     ).join('\n');
 
@@ -47,7 +53,7 @@ Consider these as DIFFERENT (should accept):
 
 CRITICAL: Also check if the EMOJI is already used. Each piece of evidence must have a unique emoji.
 
-Existing emojis: ${existingEvidence.map((e: any) => e.emoji).join(', ') || 'None'}
+Existing emojis: ${existingEvidence.map((e: Evidence) => e.emoji).join(', ') || 'None'}
 
 Respond with ONLY valid JSON:
 {

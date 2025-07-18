@@ -1,24 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
+import { Evidence } from '@/types/game';
 
 const prisma = new PrismaClient();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface EvidenceGenerationRequest {
+  characterResponse: string;
+  characterName: string;
+  existingEvidence: Evidence[];
+  evidenceCount: number;
+  caseId: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      playerQuestion, 
-      characterResponse, 
+    const {
+      characterResponse,
       characterName,
-      existingEvidence, 
-      conversationHistory,
-      actionsRemaining,
+      existingEvidence,
       evidenceCount,
       caseId
-    } = await request.json();
+    } = await request.json() as EvidenceGenerationRequest;
 
     console.log('🧩 EVIDENCE GENERATION REQUEST:');
     console.log('- Case:', caseId);
@@ -54,7 +60,7 @@ export async function POST(request: NextRequest) {
     const existingEmojis = new Set();
     const existingNames = new Set();
     
-    const existingEvidenceList = existingEvidence.map((e: any) => {
+    const existingEvidenceList = existingEvidence.map((e: Evidence) => {
       // Track by emoji
       existingEmojis.add(e.emoji);
       
