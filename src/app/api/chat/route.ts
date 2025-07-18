@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
+import { GameState, Suspect } from '@/types/game';
 
 const prisma = new PrismaClient();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface ChatRequestBody {
+  suspectId: string;
+  question: string;
+  gameState: GameState & { suspectsData?: Record<string, Suspect> };
+  caseId: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { suspectId, question, gameState, caseId } = await request.json();
+    const { suspectId, question, gameState, caseId } =
+      await request.json() as ChatRequestBody;
     
     console.log('💬 CHAT REQUEST:');
     console.log('- Case:', caseId);

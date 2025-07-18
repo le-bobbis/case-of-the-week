@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
+import { GameState } from '@/types/game';
 
 const prisma = new PrismaClient();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface InspectRequestBody {
+  inspection: string;
+  gameState: GameState;
+  caseId: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { inspection, gameState, caseId } = await request.json();
+    const { inspection, gameState, caseId } =
+      await request.json() as InspectRequestBody;
 
     console.log('🔍 INSPECT REQUEST:');
     console.log('- Case:', caseId);
